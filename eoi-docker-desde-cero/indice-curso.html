@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker desde cero sobre un laboratorio real</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a class="nav-brand" href="indice-curso.html">
+                <span class="brand-icon">DK</span>
+                <span>Docker desde cero</span>
+            </a>
+            <button class="nav-mobile-btn" type="button" aria-label="Abrir menu">Menu</button>
+            <ul class="nav-links">
+                <li><a class="active" href="indice-curso.html">0. Indice</a></li>
+                <li><a href="nivel_1_arquitectura.html">1. Arquitectura</a></li>
+                <li><a href="nivel_2_dockerfiles.html">2. Dockerfiles</a></li>
+                <li><a href="nivel_3_volumenes_redes.html">3. Redes y volumenes</a></li>
+                <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-bg-grid"></div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                Rehecho desde cero y revalidado en esta sesion
+            </div>
+            <h1 class="hero-title">Docker <span class="gradient-text">desde cero</span></h1>
+            <p class="hero-subtitle">Imagenes, contenedores, redes, volumenes y Compose usando un laboratorio real</p>
+            <p class="hero-desc">
+                Este curso sustituye a la version anterior. El hilo conductor ya no es un texto abstracto, sino el laboratorio real en <code>/home/deivit/Lucentia/projects/jenkins-lab</code>.
+                Durante esta sesion se ha vuelto a ejecutar <code>./scripts/run-end-to-end-check.sh</code>: se reconstruyeron las imagenes, se levantaron los tres servicios, se creo el repositorio en Gitea, un primer push dejo un build en rojo y un segundo push dejo el pipeline en verde.
+                El objetivo es que puedas explicarlo en directo sin saltos y con evidencia observable en cada paso.
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="nivel_1_arquitectura.html">Empezar por la arquitectura</a>
+                <a class="btn btn-outline" href="nivel_5_compose_avanzado.html">Ver la repeticion completa</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat"><span class="stat-num">3</span> servicios del stack</div>
+                <div class="stat-sep"></div>
+                <div class="stat"><span class="stat-num">2</span> volumenes nombrados</div>
+                <div class="stat-sep"></div>
+                <div class="stat"><span class="stat-num">2</span> builds verificados en esta sesion</div>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="flink-container">
+                <svg viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="24" y="44" width="122" height="58" rx="14" stroke="#06b6d4" stroke-width="2"/>
+                    <text x="85" y="78" fill="#f1f5f9" text-anchor="middle" font-size="18" font-family="Inter">Dockerfile</text>
+                    <rect x="174" y="44" width="122" height="58" rx="14" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="235" y="78" fill="#f1f5f9" text-anchor="middle" font-size="18" font-family="Inter">Compose</text>
+                    <rect x="24" y="214" width="80" height="58" rx="14" stroke="#10b981" stroke-width="2"/>
+                    <text x="64" y="248" fill="#f1f5f9" text-anchor="middle" font-size="16" font-family="Inter">Gitea</text>
+                    <rect x="120" y="214" width="80" height="58" rx="14" stroke="#e8421a" stroke-width="2"/>
+                    <text x="160" y="248" fill="#f1f5f9" text-anchor="middle" font-size="15" font-family="Inter">Jenkins</text>
+                    <rect x="216" y="214" width="80" height="58" rx="14" stroke="#38bdf8" stroke-width="2"/>
+                    <text x="256" y="248" fill="#f1f5f9" text-anchor="middle" font-size="14" font-family="Inter">Relay</text>
+                    <path d="M85 102V160" stroke="#94a3b8" stroke-width="2" class="edge-anim"/>
+                    <path d="M235 102V160" stroke="#94a3b8" stroke-width="2" class="edge-anim"/>
+                    <path d="M85 160H235" stroke="#94a3b8" stroke-width="2" class="edge-anim"/>
+                    <path d="M64 160V214" stroke="#94a3b8" stroke-width="2" class="edge-anim"/>
+                    <path d="M160 160V214" stroke="#94a3b8" stroke-width="2" class="edge-anim"/>
+                    <path d="M256 160V214" stroke="#94a3b8" stroke-width="2" class="edge-anim"/>
+                </svg>
+            </div>
+        </div>
+    </header>
+
+    <section class="section section-dark">
+        <div class="container">
+            <div class="section-header light">
+                <h2>Que se ha comprobado de verdad</h2>
+                <p>No es una promesa del material. Es lo que ha ocurrido al ejecutar el laboratorio.</p>
+            </div>
+            <div class="cards-grid">
+                <article class="card reveal">
+                    <span class="card-icon">IMG</span>
+                    <h3>Build reproducible de imagenes</h3>
+                    <p>Se han reconstruido las imagenes <code>jenkins-lab-jenkins</code> y <code>jenkins-lab-webhook-relay</code> con <code>docker compose up -d --build</code>.</p>
+                </article>
+                <article class="card reveal">
+                    <span class="card-icon">RUN</span>
+                    <h3>Servicios levantados</h3>
+                    <p><code>docker compose ps</code> mostro <strong>gitea</strong>, <strong>jenkins</strong> y <strong>webhook-relay</strong> en ejecucion, con Jenkins marcado como <code>healthy</code>.</p>
+                </article>
+                <article class="card reveal">
+                    <span class="card-icon">VOL</span>
+                    <h3>Persistencia declarada</h3>
+                    <p><code>docker compose config --volumes</code> devolvio <code>gitea_data</code> y <code>jenkins_data</code>, que son la base de la persistencia del laboratorio.</p>
+                </article>
+                <article class="card reveal">
+                    <span class="card-icon">LAB</span>
+                    <h3>Flujo completo de clase</h3>
+                    <p>El script integral creo el repo, lanzo un push con bug y confirmo un segundo push con reparacion. En esta sesion quedaron verificados un build fallido y un build exitoso.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Punto de partida del curso</h2>
+                <p>Este es el conjunto minimo de datos que conviene tener visible en una clase en directo.</p>
+            </div>
+            <div class="table-wrapper reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Elemento</th>
+                            <th>Valor</th>
+                            <th>Para que sirve</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Ruta del laboratorio</strong></td>
+                            <td><code>/home/deivit/Lucentia/projects/jenkins-lab</code></td>
+                            <td>Repositorio base sobre el que se explican imagenes, volumenes, redes y Compose.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Comando integral</strong></td>
+                            <td><code>./scripts/run-end-to-end-check.sh</code></td>
+                            <td>Destruye estado anterior, reconstruye el stack, espera a Jenkins, prepara Gitea y ejecuta la demo completa.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Servicios Compose</strong></td>
+                            <td><code>gitea</code>, <code>jenkins</code>, <code>webhook-relay</code></td>
+                            <td>Sirven para enseñar contenedores independientes que cooperan a traves de red interna.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Volumenes Compose</strong></td>
+                            <td><code>gitea_data</code>, <code>jenkins_data</code></td>
+                            <td>Permiten explicar la diferencia entre borrar un contenedor y perder o no perder el estado.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>URLs observables</strong></td>
+                            <td><code>http://localhost:3000</code>, <code>http://localhost:9090</code></td>
+                            <td>Gitea y Jenkins quedan expuestos al host mediante <code>ports</code>.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="info-box info reveal">
+                <span class="info-box-icon">INFO</span>
+                <div class="info-box-text">
+                    <strong>Decisiones didacticas:</strong> el curso empieza con un laboratorio algo mas rico que un simple <code>hello world</code> porque asi puedes explicar para que sirven de verdad las piezas de Docker. Aun asi, en cada capitulo veras primero un ejemplo base y despues el caso real del laboratorio.
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-alt">
+        <div class="container">
+            <div class="section-header light">
+                <h2>Mapa del recorrido</h2>
+                <p>Cada capitulo responde a una pregunta concreta y prepara el siguiente paso.</p>
+            </div>
+            <div class="nav-cards">
+                <a class="nav-card reveal" href="nivel_1_arquitectura.html">
+                    <div class="nav-card-top"><span class="nav-card-icon">01</span></div>
+                    <div class="nav-card-body">
+                        <h3>Arquitectura y primer arranque</h3>
+                        <p>Que piezas hay, por que interesa contenedorizarlas y que efecto tiene cada comando inicial.</p>
+                        <span class="nav-tag">Servicios</span>
+                        <span class="nav-tag">Puertos</span>
+                    </div>
+                </a>
+                <a class="nav-card reveal" href="nivel_2_dockerfiles.html">
+                    <div class="nav-card-top"><span class="nav-card-icon">02</span></div>
+                    <div class="nav-card-body">
+                        <h3>Imagenes y Dockerfiles</h3>
+                        <p>Como se construyen imagenes, que hace cada instruccion y como se aplica eso a Jenkins y al relay.</p>
+                        <span class="nav-tag">FROM</span>
+                        <span class="nav-tag">RUN</span>
+                    </div>
+                </a>
+                <a class="nav-card reveal" href="nivel_3_volumenes_redes.html">
+                    <div class="nav-card-top"><span class="nav-card-icon">03</span></div>
+                    <div class="nav-card-body">
+                        <h3>Redes, volumenes y mounts</h3>
+                        <p>Como se comunican los servicios y por que unas rutas deben persistir mientras otras deben seguir siendo efimeras.</p>
+                        <span class="nav-tag">DNS interno</span>
+                        <span class="nav-tag">Persistencia</span>
+                    </div>
+                </a>
+                <a class="nav-card reveal" href="nivel_4_compose_basico.html">
+                    <div class="nav-card-top"><span class="nav-card-icon">04</span></div>
+                    <div class="nav-card-body">
+                        <h3>Compose sin magia</h3>
+                        <p>Se descompone el fichero YAML y se explica como pasar de una ejecucion interactiva a una topologia declarada.</p>
+                        <span class="nav-tag">YAML</span>
+                        <span class="nav-tag">Up y down</span>
+                    </div>
+                </a>
+                <a class="nav-card reveal" href="nivel_5_compose_avanzado.html">
+                    <div class="nav-card-top"><span class="nav-card-icon">05</span></div>
+                    <div class="nav-card-body">
+                        <h3>Repetibilidad y clase en directo</h3>
+                        <p>Healthchecks, esperas activas, bootstrap automatico y secuencia docente para repetir la demo sin improvisar.</p>
+                        <span class="nav-tag">Healthcheck</span>
+                        <span class="nav-tag">Demo completa</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo">LucentIA</div>
+                <p>Curso rehecho usando el laboratorio validado en <code>/home/deivit/Lucentia/projects/jenkins-lab</code>.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Ruta sugerida</h5>
+                <ul>
+                    <li><a href="nivel_1_arquitectura.html">1. Entender el stack</a></li>
+                    <li><a href="nivel_3_volumenes_redes.html">3. Ver que persiste</a></li>
+                    <li><a href="nivel_5_compose_avanzado.html">5. Repetir la demo</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">Revalidado en esta sesion con arranque, push con fallo y push con reparacion.</div>
+    </footer>
+
+    <script>
+        const navButton = document.querySelector('.nav-mobile-btn');
+        const navLinks = document.querySelector('.nav-links');
+        const navbar = document.querySelector('.navbar');
+
+        if (navButton && navLinks) {
+            navButton.addEventListener('click', () => navLinks.classList.toggle('open'));
+        }
+
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 12);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Lab - Arranque</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="layout">
+        <div class="topbar">
+            <div class="brand">Jenkins Lab<small>Capítulo 1</small></div>
+            <nav class="nav">
+                <a href="index.html">0. Índice</a>
+                <a class="active" href="01-arranque.html">1. Arranque</a>
+                <a href="02-gitea-jenkins.html">2. Gitea + Jenkins</a>
+                <a href="03-codigo-unitarios.html">3. Código + unitarios</a>
+                <a href="04-integracion-fallo.html">4. Integración + fallo</a>
+                <a href="05-reparacion-validacion.html">5. Reparación</a>
+            </nav>
+        </div>
+
+        <section class="hero page-header">
+            <span class="eyebrow">Capítulo 1</span>
+            <h1>Arranque limpio del laboratorio</h1>
+            <p class="lead">Aquí no hay pasos implícitos. El laboratorio está preparado para reconstruirse desde cero. Lo importante no es solo levantar contenedores, sino entender qué pieza resuelve cada problema operativo.</p>
+        </section>
+
+        <section class="page-section two-col">
+            <div class="step">
+                <h3>Paso 1. Entrar en el directorio del laboratorio</h3>
+                <div class="code-shell">
+                    <div class="label">Shell</div>
+                    <pre><code>cd /home/deivit/Lucentia/projects/jenkins-lab</code></pre>
+                </div>
+                <p>Todo el material necesario está ahí: `docker-compose.yml`, scripts, plantilla del repo y documentación HTML.</p>
+            </div>
+
+            <div class="step">
+                <h3>Paso 2. Levantar y verificar el entorno completo</h3>
+                <div class="code-shell">
+                    <div class="label">Shell</div>
+                    <pre><code>./scripts/run-end-to-end-check.sh</code></pre>
+                </div>
+                <p>Este script no solo levanta contenedores. También crea el usuario de Gitea, genera el repositorio remoto, configura el webhook y ejecuta la demo completa del fallo y la reparación.</p>
+            </div>
+        </section>
+
+        <section class="matrix page-section">
+            <h3>Qué hace cada servicio</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Servicio</th>
+                        <th>Papel técnico</th>
+                        <th>Por qué existe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Gitea</td>
+                        <td>Remoto Git local</td>
+                        <td>El alumno empuja código a un servidor real de Git, no a un directorio simulado.</td>
+                    </tr>
+                    <tr>
+                        <td>Jenkins</td>
+                        <td>Orquestador CI</td>
+                        <td>Lee el `Jenkinsfile`, clona el repo y ejecuta stages separados para unitarios e integración.</td>
+                    </tr>
+                    <tr>
+                        <td>Webhook relay</td>
+                        <td>Puente HTTP interno</td>
+                        <td>Gitea hace `POST` al relay y el relay dispara el build de Jenkins. Se evita así depender del comportamiento de polling del plugin Git.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="panel page-section">
+            <h2>Credenciales de trabajo</h2>
+            <ul>
+                <li>Jenkins administrador: <code>admin</code> / <code>jenkinsadmin2026</code></li>
+                <li>Jenkins lectura: <code>alumno</code> / <code>alumno2026</code></li>
+                <li>Gitea usuario del ejercicio: <code>alumno</code> / <code>alumno2026</code></li>
+            </ul>
+            <div class="note warning">
+                <strong>Advertencia de contexto.</strong> Estas credenciales están pensadas para un laboratorio aislado. No son un patrón de despliegue productivo.
+            </div>
+        </section>
+
+        <section class="report page-section">
+            <h2>Verificaciones mínimas tras el arranque</h2>
+            <ol>
+                <li>Abrir <code>http://localhost:3000</code> y confirmar que Gitea carga.</li>
+                <li>Abrir <code>http://localhost:9090</code> y confirmar que Jenkins carga.</li>
+                <li>Comprobar que el job <code>jenkins-python-lab</code> existe en Jenkins.</li>
+                <li>Comprobar que el repo <code>alumno/jenkins-python-lab</code> existe en Gitea.</li>
+                <li>Comprobar en el reporte de validación que el build 3 falló y el build 4 pasó.</li>
+            </ol>
+        </section>
+
+        <div class="footer">Siguiente capítulo: conexión real entre Gitea y Jenkins.</div>
+    </div>
+</body>
+</html>

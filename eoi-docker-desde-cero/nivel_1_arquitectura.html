@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker desde cero - Arquitectura y primer arranque</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a class="nav-brand" href="indice-curso.html"><span class="brand-icon">DK</span><span>Docker desde cero</span></a>
+            <button class="nav-mobile-btn" type="button" aria-label="Abrir menu">Menu</button>
+            <ul class="nav-links">
+                <li><a href="indice-curso.html">0. Indice</a></li>
+                <li><a class="active" href="nivel_1_arquitectura.html">1. Arquitectura</a></li>
+                <li><a href="nivel_2_dockerfiles.html">2. Dockerfiles</a></li>
+                <li><a href="nivel_3_volumenes_redes.html">3. Redes y volumenes</a></li>
+                <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">01</span>
+        <h1>Arquitectura y primer arranque</h1>
+        <p>Antes de hablar de Dockerfiles o volumenes hay que fijar una idea basica: que piezas componen el laboratorio y que efecto produce cada comando inicial.</p>
+    </header>
+
+    <div class="content">
+        <h2>1. Por que aqui Docker si y host directo no</h2>
+        <p>
+            Este curso no parte de una opinion abstracta sobre contenedores. Parte de una necesidad docente muy concreta: poder destruir el laboratorio y reconstruirlo delante de la clase sin depender de configuraciones hechas a mano el dia anterior.
+            Si instalases Jenkins, Gitea y el relay directamente en el host, una parte importante de la sesion se iria en explicar paquetes del sistema, servicios del init, rutas locales y pequenas diferencias del entorno anfitrion.
+            Al contenedorizarlos, la topologia queda declarada y puede repetirse con el mismo guion.
+        </p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>Instalacion directa en el host</h5>
+                <ul>
+                    <li>El estado queda repartido entre servicios del sistema y ficheros locales.</li>
+                    <li>Es facil olvidar un cambio manual que no quedo documentado.</li>
+                    <li>La reconstruccion completa es mas lenta y menos predecible.</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>Laboratorio con Docker Compose</h5>
+                <ul>
+                    <li>Servicios, puertos, volumenes y variables quedan descritos en un mismo fichero.</li>
+                    <li><code>docker compose down -v --remove-orphans</code> borra el estado del lab de una forma controlada.</li>
+                    <li><code>docker compose up -d --build</code> recompone el stack con la configuracion declarada.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="info-box info">
+            <span class="info-box-icon">INFO</span>
+            <div class="info-box-text">
+                <strong>Idea clave:</strong> no se usa Docker porque sea moderno. Se usa porque reduce el numero de variables ocultas cuando tienes que explicar un sistema entero delante de otros.
+            </div>
+        </div>
+
+        <h2>2. Que servicios existen y que demuestra cada uno</h2>
+        <p>
+            El laboratorio real tiene tres servicios. Ese numero es lo bastante pequeno para seguirlo en directo, pero lo bastante rico para enseñar red interna, puertos publicados, persistencia y cooperacion entre contenedores.
+        </p>
+
+        <div class="concept-grid">
+            <div class="concept-card cyan">
+                <span class="concept-icon">GIT</span>
+                <h3>Gitea</h3>
+                <p>Es el repositorio Git local. Publica HTTP en <code>3000</code> y SSH en <code>222</code>. Permite enseñar que un contenedor puede exponer servicios al host sin dejar de vivir dentro de una red privada.</p>
+            </div>
+            <div class="concept-card orange">
+                <span class="concept-icon">JNK</span>
+                <h3>Jenkins</h3>
+                <p>Es el servicio mas interesante para Docker porque no solo arranca como contenedor: ademas necesita construir y lanzar otros contenedores durante el pipeline.</p>
+            </div>
+            <div class="concept-card green">
+                <span class="concept-icon">REL</span>
+                <h3>Webhook relay</h3>
+                <p>Es un servicio Python pequeno que recibe el evento de Gitea y llama a Jenkins desde la red interna del stack. Sirve para explicar DNS interno entre servicios.</p>
+            </div>
+        </div>
+
+        <h2>3. Primer contacto con Compose: ver antes de arrancar</h2>
+        <p>
+            Antes de levantar nada, conviene pedirle a Compose una vista simplificada de la topologia. Esto reduce errores de lectura y da al alumno una lista concreta de lo que deberia aparecer despues.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash - Ver los servicios declarados</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>cd /home/deivit/Lucentia/projects/jenkins-lab
+docker compose config --services</code></pre>
+        </div>
+
+        <p>En la revalidacion de esta sesion, la salida fue exactamente esta:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">text - Servicios observados</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>gitea
+jenkins
+webhook-relay</code></pre>
+        </div>
+
+        <p>
+            Si aqui aparece un servicio que no esperabas, el problema esta en el YAML. Si aqui falta uno, el problema esta en el YAML. Todavia no has levantado nada, asi que este es el mejor momento para corregir el modelo antes de pasar a la ejecucion.
+        </p>
+
+        <h2>4. Arranque real paso a paso</h2>
+        <p>
+            El guion que hemos usado para revalidar el laboratorio no contiene magia. Son tres pasos enlazados: destruir, construir y observar. Lo importante es entender que cambia en el sistema despues de cada comando.
+        </p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                    <h5>Limpiar el estado anterior</h5>
+                    <p><code>docker compose down -v --remove-orphans</code> elimina contenedores, red y volumenes del laboratorio. Si haces esto, el siguiente arranque parte de cero. Si no lo haces, puedes estar observando restos de una ejecucion previa.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                    <h5>Reconstruir y arrancar</h5>
+                    <p><code>docker compose up -d --build</code> obliga a revisar las imagenes y deja los contenedores corriendo en segundo plano. Si quitas <code>--build</code>, puedes seguir usando una imagen antigua. Si quitas <code>-d</code>, el terminal queda atado a los logs.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                    <h5>Comprobar el estado observable</h5>
+                    <p><code>docker compose ps</code> te dice si el modelo que declaraste se corresponde con procesos reales en ejecucion.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash - Secuencia minima reproducible</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>cd /home/deivit/Lucentia/projects/jenkins-lab
+docker compose down -v --remove-orphans
+docker compose up -d --build
+docker compose ps</code></pre>
+        </div>
+
+        <p>Esta fue la salida relevante de <code>docker compose ps</code> durante la sesion:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">text - Estado de contenedores observado</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>NAME                  IMAGE                       SERVICE         STATUS                        PORTS
+gitea-jenkins-relay   jenkins-lab-webhook-relay  webhook-relay   Up About a minute
+gitea-lab             gitea/gitea:1.22.6         gitea           Up About a minute             3000->3000, 222->22
+jenkins-lab           jenkins-lab-jenkins        jenkins         Up About a minute (healthy)   9090->8080, 50000->50000</code></pre>
+        </div>
+
+        <p>
+            Observa dos hechos importantes. Primero, el nombre de servicio y el nombre de contenedor no son lo mismo. Segundo, Jenkins aparece como <code>healthy</code> porque el Compose real define un <code>healthcheck</code>; eso se explicara mas adelante, pero aqui ya ves el efecto visible.
+        </p>
+
+        <h2>5. El recorte del compose que merece memorizar</h2>
+        <p>
+            No hace falta memorizar el fichero entero. Si estas empezando, conviene fijarse en las secciones que determinan el comportamiento: <code>services</code>, <code>ports</code>, <code>volumes</code>, <code>environment</code> y <code>networks</code>.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">yaml - Fragmento real del docker-compose</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>services:
+  gitea:
+    image: gitea/gitea:1.22.6
+    ports:
+      - "3000:3000"
+      - "222:22"
+    volumes:
+      - gitea_data:/data
+
+  jenkins:
+    build:
+      context: ./jenkins
+    ports:
+      - "9090:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+
+  webhook-relay:
+    build:
+      context: ./webhook-relay
+    environment:
+      JENKINS_URL: http://jenkins:8080</code></pre>
+        </div>
+
+        <h2>6. Dos fallos muy frecuentes al arrancar</h2>
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Fallo tipico 1:</strong> Docker daemon caido. Si ejecutas <code>docker compose up</code> y Docker no responde, no estas ante un problema del YAML. Primero hay que recuperar el motor Docker.
+            </div>
+        </div>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Fallo tipico 2:</strong> puerto ocupado en el host. Si otro proceso usa <code>3000</code> o <code>9090</code>, el contenedor puede estar bien definido y aun asi no llegar a publicarse correctamente hacia fuera.
+            </div>
+        </div>
+
+        <h2>7. Que deberia quedarte claro al cerrar este capitulo</h2>
+        <ul>
+            <li>Docker aqui sirve para declarar y reconstruir una topologia completa, no solo para ejecutar un proceso aislado.</li>
+            <li>Compose te deja inspeccionar el modelo antes de arrancarlo y comprobar el resultado despues.</li>
+            <li>El laboratorio tiene tres servicios porque eso permite enseñar cooperacion real entre contenedores.</li>
+            <li>El siguiente paso natural es entender como se construyen las imagenes que despues Compose ejecuta.</li>
+        </ul>
+
+        <p><strong>Siguiente capitulo:</strong> <a href="nivel_2_dockerfiles.html">2. Imagenes y Dockerfiles: de una definicion minima a los casos reales de Jenkins y el relay</a>.</p>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo">LucentIA</div>
+                <p>Capitulo orientado a fijar la topologia antes de entrar en imagenes, mounts y Compose avanzado.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Continuar</h5>
+                <ul>
+                    <li><a href="nivel_2_dockerfiles.html">2. Dockerfiles</a></li>
+                    <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">Primero entiende el stack; luego ya tiene sentido mirar como se construyen sus imagenes.</div>
+    </footer>
+
+    <script>
+        const navButton = document.querySelector('.nav-mobile-btn');
+        const navLinks = document.querySelector('.nav-links');
+        const navbar = document.querySelector('.navbar');
+
+        if (navButton && navLinks) {
+            navButton.addEventListener('click', () => navLinks.classList.toggle('open'));
+        }
+
+        function copyCode(button) {
+            const code = button.closest('.code-block').querySelector('pre code').innerText;
+            navigator.clipboard.writeText(code);
+            button.textContent = 'Copiado';
+            setTimeout(() => {
+                button.textContent = 'Copiar';
+            }, 1500);
+        }
+
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 12);
+        });
+    </script>
+</body>
+</html>

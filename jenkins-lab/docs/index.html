@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Lab - Índice</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="layout">
+        <div class="topbar">
+            <div class="brand">Jenkins Lab<small>CI reproducible con Gitea, pytest y MariaDB</small></div>
+            <nav class="nav">
+                <a class="active" href="index.html">0. Índice</a>
+                <a href="01-arranque.html">1. Arranque</a>
+                <a href="02-gitea-jenkins.html">2. Gitea + Jenkins</a>
+                <a href="03-codigo-unitarios.html">3. Código + unitarios</a>
+                <a href="04-integracion-fallo.html">4. Integración + fallo</a>
+                <a href="05-reparacion-validacion.html">5. Reparación</a>
+            </nav>
+        </div>
+
+        <section class="hero">
+            <span class="eyebrow">Laboratorio verificado</span>
+            <h1>Un flujo de CI que no se explica en abstracto: se levanta, se rompe y se repara.</h1>
+            <p class="lead">Este laboratorio enseña un pipeline de Jenkins sobre código Python real. El alumno ve un push en Gitea, observa cómo Jenkins ejecuta test unitarios y de integración contra MariaDB, provoca un fallo en el adaptador SQL y comprueba después la reparación en un build verde.</p>
+
+            <div class="hero-grid">
+                <div class="section-card">
+                    <div class="mini-title">Objetivo didáctico</div>
+                    <p>Entender la cadena completa: repositorio remoto, job de Jenkins, stages con contenedores, diferencia entre mocks y base de datos real, y lectura de fallos reales en consola.</p>
+                </div>
+                <div class="section-card">
+                    <div class="mini-title">Servicios del stack</div>
+                    <p>El stack levanta tres piezas: Gitea, Jenkins y un relay HTTP interno. El relay existe para que el push dispare el job de Jenkins de manera determinista sin depender del polling del plugin Git.</p>
+                </div>
+                <div class="section-card">
+                    <div class="mini-title">Resultado verificado</div>
+                    <p>La secuencia real quedó validada con dos builds consecutivos: el build <strong>3</strong> falla por el bug SQL y el build <strong>4</strong> pasa tras corregir el filtro de consulta.</p>
+                </div>
+            </div>
+
+            <div class="pill-row">
+                <span class="pill">Jenkins: http://localhost:9090</span>
+                <span class="pill">Gitea: http://localhost:3000</span>
+                <span class="pill">Credenciales demo: admin/jenkinsadmin2026 y alumno/alumno2026</span>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Qué vas a encontrar aquí</h2>
+            <div class="card-grid">
+                <a class="section-card page-link" href="01-arranque.html">
+                    <h3>1. Arranque</h3>
+                    <p>Instalación del stack, estructura del proyecto y comandos que dejan el laboratorio listo para usar desde cero.</p>
+                </a>
+                <a class="section-card page-link" href="02-gitea-jenkins.html">
+                    <h3>2. Gitea + Jenkins</h3>
+                    <p>Cómo se crea el repo remoto, cómo se dispara Jenkins desde el push y por qué se introdujo un relay interno.</p>
+                </a>
+                <a class="section-card page-link" href="03-codigo-unitarios.html">
+                    <h3>3. Código + unitarios</h3>
+                    <p>La aplicación de ejemplo, el contrato del repositorio, la clase de dominio y el sentido de los test unitarios con dobles.</p>
+                </a>
+                <a class="section-card page-link" href="04-integracion-fallo.html">
+                    <h3>4. Integración + fallo</h3>
+                    <p>El adaptador MariaDB, el bug intencional, el build rojo y la lectura correcta del fallo en consola.</p>
+                </a>
+                <a class="section-card page-link" href="05-reparacion-validacion.html">
+                    <h3>5. Reparación</h3>
+                    <p>La corrección, el build verde, el reporte final y la ruta exacta para repetir el ejercicio en clase.</p>
+                </a>
+            </div>
+        </section>
+
+        <section class="report">
+            <h2>Mapa del directorio</h2>
+            <div class="code-shell">
+                <div class="label">Estructura clave del laboratorio</div>
+                <pre><code>projects/jenkins-lab/
+├── docker-compose.yml
+├── README.md
+├── VALIDATION_REPORT.md
+├── docs/
+├── jenkins/
+├── repo-template/
+├── scripts/
+└── webhook-relay/</code></pre>
+            </div>
+            <p>El alumno no trabaja sobre teoría abstracta. Trabaja sobre un repositorio plantilla, lo publica en Gitea, deja que Jenkins lo construya y usa los reportes JUnit para ver qué falló y por qué.</p>
+        </section>
+
+        <div class="footer">Documento generado para el laboratorio real de Jenkins, Gitea y pytest validado el 8 de abril de 2026.</div>
+    </div>
+</body>
+</html>

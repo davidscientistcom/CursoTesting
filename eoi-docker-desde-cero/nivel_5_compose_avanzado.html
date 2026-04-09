@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker desde cero - Repetibilidad y clase en directo</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a class="nav-brand" href="indice-curso.html"><span class="brand-icon">DK</span><span>Docker desde cero</span></a>
+            <button class="nav-mobile-btn" type="button" aria-label="Abrir menu">Menu</button>
+            <ul class="nav-links">
+                <li><a href="indice-curso.html">0. Indice</a></li>
+                <li><a href="nivel_1_arquitectura.html">1. Arquitectura</a></li>
+                <li><a href="nivel_2_dockerfiles.html">2. Dockerfiles</a></li>
+                <li><a href="nivel_3_volumenes_redes.html">3. Redes y volumenes</a></li>
+                <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                <li><a class="active" href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">05</span>
+        <h1>Repetibilidad y clase en directo</h1>
+        <p>La parte mas delicada de un laboratorio no es que una vez funcione. Es que puedas repetirlo delante de una clase y saber que paso si algo no sale como esperabas.</p>
+    </header>
+
+    <div class="content">
+        <h2>1. Compose por si solo no resuelve toda la orquestacion practica</h2>
+        <p>
+            Compose arranca servicios, pero no garantiza que una aplicacion este lista para recibir trafico solo porque su proceso haya comenzado. En el laboratorio, ese matiz importa mucho: Jenkins puede estar arrancado como proceso y aun no estar listo para autenticarse ni para servir el job.
+            Por eso aparecen healthchecks, scripts de espera y bootstrap automatizado.
+        </p>
+
+        <div class="info-box info">
+            <span class="info-box-icon">INFO</span>
+            <div class="info-box-text">
+                <strong>Idea clave:</strong> <code>depends_on</code> ordena arranques basicos, pero no sustituye una comprobacion real de disponibilidad. Para clase, esta diferencia es importante porque explica muchos falsos arranques "verdes" que luego fallan en el paso siguiente.
+            </div>
+        </div>
+
+        <h2>2. El healthcheck real de Jenkins</h2>
+        <p>
+            El Compose del laboratorio declara un healthcheck para Jenkins. Esa configuracion es la razon por la que en <code>docker compose ps</code> se llego a ver <code>healthy</code> en la sesion de revalidacion.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">yaml - Healthcheck real de Jenkins</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>healthcheck:
+  test: ["CMD", "curl", "-fsS", "http://localhost:8080/login"]
+  interval: 20s
+  timeout: 10s
+  retries: 6
+  start_period: 60s</code></pre>
+        </div>
+
+        <p>
+            Si haces la comprobacion contra <code>/login</code> y responde correctamente, tienes una evidencia bastante razonable de que Jenkins ya es util para el siguiente paso. Si la comprobacion falla, Compose no te dice solo "el proceso sigue vivo"; te dice que el servicio aun no esta sano.
+        </p>
+
+        <h2>3. Espera activa: no seguir hasta que Jenkins responda</h2>
+        <p>
+            Aun con healthcheck, el flujo docente necesita un punto de espera explicito antes del bootstrap. El script real hace precisamente eso: consulta Jenkins varias veces hasta que consigue autenticar contra <code>/login</code>.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash - wait-for-jenkins.sh</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>for attempt in $(seq 1 60); do
+    if curl -fsS -u "$auth" "$jenkins_url/login" &gt;/dev/null 2&gt;&amp;1; then
+        echo "Jenkins responde en $jenkins_url"
+        exit 0
+    fi
+    sleep 5
+done
+
+echo "Jenkins no estuvo listo a tiempo" &gt;&amp;2
+exit 1</code></pre>
+        </div>
+
+        <p>
+            El mensaje <code>Jenkins responde en http://localhost:9090</code> aparecio en la revalidacion de esta sesion. Esa linea es una evidencia importante porque marca el momento exacto a partir del cual tiene sentido seguir con el bootstrap del laboratorio.
+        </p>
+
+        <h2>4. Bootstrap automatico de Gitea</h2>
+        <p>
+            Una vez Jenkins y Gitea responden, el laboratorio crea automaticamente el usuario, el repositorio y el webhook. Esa automatizacion evita clics manuales, reduce errores y permite que la clase se concentre en las ideas de Docker en vez de quedarse atrapada en formularios web.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash - Pasos clave de bootstrap-gitea.sh</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>wait_for_gitea
+ensure_user "$repo_owner" "$repo_password" "${repo_owner}@jenkins-lab.local"
+ensure_repo
+ensure_webhook</code></pre>
+        </div>
+
+        <p>Durante la revalidacion quedaron confirmadas estas salidas:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">text - Bootstrap observado</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>Gitea responde en http://localhost:3000
+Repositorio alumno/jenkins-python-lab creado
+Webhook creado hacia http://webhook-relay:8081/gitea/push</code></pre>
+        </div>
+
+        <h2>5. El guion integral que conviene enseñar</h2>
+        <p>
+            El laboratorio ya empaqueta toda la secuencia en un solo script. Para clase, esto es util por dos razones: reduce cambios de contexto y deja por escrito el orden correcto de ejecucion.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash - run-end-to-end-check.sh</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>docker compose down -v --remove-orphans
+docker compose up -d --build
+
+"$LAB_ROOT/scripts/wait-for-jenkins.sh"
+"$LAB_ROOT/scripts/bootstrap-gitea.sh"
+"$LAB_ROOT/scripts/run-demo.sh"</code></pre>
+        </div>
+
+        <p>
+            Leido despacio, este script resume medio curso. Primero destruye el estado previo. Luego reconstruye el stack. Despues espera a Jenkins. A continuacion prepara Gitea. Finalmente ejecuta una demo que prueba que el laboratorio no solo arranca: tambien sirve para una historia completa de desarrollo y validacion.
+        </p>
+
+        <h2>6. La demo final: fallo real y reparacion real</h2>
+        <p>
+            El script <code>run-demo.sh</code> prepara un repositorio temporal, introduce un bug SQL, hace push, espera al build fallido, repara el bug y hace un segundo push. Lo importante no es Jenkins en si; lo importante para este curso es que Docker sostiene todo el circuito que permite observar ese comportamiento.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash - Salida relevante de la revalidacion</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>Build con fallo verificado: 1
+Build reparado y verificado: 2
+FAIL_BUILD=1
+SUCCESS_BUILD=2</code></pre>
+        </div>
+
+        <p>
+            En una validacion anterior del propio laboratorio quedaron registrados tambien los builds 3 y 4. Eso confirma una idea importante para clase: no dependes de una unica ejecucion afortunada. El comportamiento se ha repetido en distintas reconstrucciones del entorno.
+        </p>
+
+        <h2>7. Secuencia docente recomendada para una clase en directo</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                    <h5>Mostrar el compose antes de ejecutarlo</h5>
+                    <p>Asi el alumno sabe que deberia aparecer: servicios, puertos, volumenes y red.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                    <h5>Ejecutar <code>run-end-to-end-check.sh</code></h5>
+                    <p>Permite recorrer el ciclo entero sin cambiar continuamente de comandos ni perder el hilo.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                    <h5>Parar en las evidencias visibles</h5>
+                    <p>Red creada, volumenes creados, Jenkins healthy, Gitea accesible, repo creado, webhook instalado.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                    <h5>Explicar el fallo del primer build</h5>
+                    <p>Es la mejor manera de demostrar que el entorno no esta maquillado para salir siempre verde.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">5</div>
+                <div class="step-body">
+                    <h5>Cerrar con la reparacion</h5>
+                    <p>El segundo build muestra que el laboratorio sigue vivo, permite iterar y refleja cambios reales de codigo.</p>
+                </div>
+            </div>
+        </div>
+
+        <h2>8. Tres limites reales que conviene declarar</h2>
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Limite 1:</strong> el laboratorio hace concesiones docentes, como desactivar CSRF en Jenkins y permitir determinados hosts internos en Gitea. Son decisiones validas para un entorno aislado, no para produccion.
+            </div>
+        </div>
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Limite 2:</strong> al usar <code>down -v</code>, los contadores de builds pueden reiniciarse. En esta sesion quedaron en 1 y 2; en la validacion previa quedaron en 3 y 4. Lo importante es el patron de comportamiento, no el numero absoluto.
+            </div>
+        </div>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Limite 3:</strong> si el host no tiene Docker operativo o si los puertos de Gitea y Jenkins estan ocupados, el laboratorio no puede arrancar aunque el material este bien escrito.
+            </div>
+        </div>
+
+        <h2>9. Cierre del curso</h2>
+        <ul>
+            <li>Docker no se ha presentado como una lista de comandos, sino como una forma de declarar y reconstruir un entorno completo.</li>
+            <li>Has visto ejemplos base y, despues, el caso real del laboratorio validado.</li>
+            <li>La repetibilidad no sale gratis: requiere healthchecks, esperas activas y bootstrap automatizado.</li>
+            <li>El material queda preparado para usarse en clase con comandos, salidas y fallos explicados paso a paso.</li>
+        </ul>
+
+        <p><strong>Vuelve al indice:</strong> <a href="indice-curso.html">Docker desde cero sobre un laboratorio real</a>.</p>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo">LucentIA</div>
+                <p>Un laboratorio util no es el que arranca una vez, sino el que puedes destruir y reconstruir explicando cada paso.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Volver a revisar</h5>
+                <ul>
+                    <li><a href="nivel_1_arquitectura.html">1. Arquitectura</a></li>
+                    <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">Curso cerrado sobre un laboratorio que ha sido rehecho y revalidado en la misma sesion de trabajo.</div>
+    </footer>
+
+    <script>
+        const navButton = document.querySelector('.nav-mobile-btn');
+        const navLinks = document.querySelector('.nav-links');
+        const navbar = document.querySelector('.navbar');
+
+        if (navButton && navLinks) {
+            navButton.addEventListener('click', () => navLinks.classList.toggle('open'));
+        }
+
+        function copyCode(button) {
+            const code = button.closest('.code-block').querySelector('pre code').innerText;
+            navigator.clipboard.writeText(code);
+            button.textContent = 'Copiado';
+            setTimeout(() => {
+                button.textContent = 'Copiar';
+            }, 1500);
+        }
+
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 12);
+        });
+    </script>
+</body>
+</html>

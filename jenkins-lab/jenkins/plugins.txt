@@ -1,0 +1,7 @@
+credentials:latest
+credentials-binding:latest
+docker-workflow:latest
+git:latest
+junit:latest
+pipeline-stage-view:latest
+workflow-aggregator:latest

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Lab - Gitea y Jenkins</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="layout">
+        <div class="topbar">
+            <div class="brand">Jenkins Lab<small>Capítulo 2</small></div>
+            <nav class="nav">
+                <a href="index.html">0. Índice</a>
+                <a href="01-arranque.html">1. Arranque</a>
+                <a class="active" href="02-gitea-jenkins.html">2. Gitea + Jenkins</a>
+                <a href="03-codigo-unitarios.html">3. Código + unitarios</a>
+                <a href="04-integracion-fallo.html">4. Integración + fallo</a>
+                <a href="05-reparacion-validacion.html">5. Reparación</a>
+            </nav>
+        </div>
+
+        <section class="hero page-header">
+            <span class="eyebrow">Capítulo 2</span>
+            <h1>Cómo se conectan Gitea y Jenkins en este laboratorio</h1>
+            <p class="lead">El objetivo no es solo que Jenkins clone un repo. El objetivo es que un <code>git push</code> en Gitea provoque automáticamente un build en Jenkins sobre la última revisión remota.</p>
+        </section>
+
+        <section class="page-section panel">
+            <h2>El flujo real que usa el laboratorio</h2>
+            <div class="code-shell">
+                <div class="label">Secuencia</div>
+                <pre><code>git push local -> Gitea recibe el commit
+                 -> Gitea envía POST al webhook relay
+                 -> relay pide a Jenkins que ejecute el job
+                 -> Jenkins clona el repo desde Gitea
+                 -> Jenkins ejecuta el Jenkinsfile de esa revisión</code></pre>
+            </div>
+            <p>La razón de introducir el relay es pragmática: así se desacopla el disparo del build del mecanismo de polling interno del plugin Git y se obtiene un comportamiento directo y repetible.</p>
+        </section>
+
+        <section class="page-section step-grid">
+            <div class="step">
+                <h3>Qué crea `bootstrap-gitea.sh`</h3>
+                <ul>
+                    <li>Usuario <code>alumno</code> en Gitea.</li>
+                    <li>Repositorio <code>alumno/jenkins-python-lab</code>.</li>
+                    <li>Webhook del repo apuntando a <code>http://webhook-relay:8081/gitea/push</code>.</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h3>Qué prepara Jenkins al arrancar</h3>
+                <ul>
+                    <li>Usuarios internos del laboratorio.</li>
+                    <li>Job <code>jenkins-python-lab</code>.</li>
+                    <li>Definición del job como <em>Pipeline script from SCM</em>.</li>
+                    <li>SCM remoto: <code>http://gitea:3000/alumno/jenkins-python-lab.git</code>.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="note page-section">
+            <strong>Punto técnico importante.</strong> El job no usa un script inline en Jenkins. Usa un `Jenkinsfile` que vive dentro del repositorio remoto. Eso permite que el alumno vea una idea central de CI moderna: el pipeline también está versionado en Git.
+        </section>
+
+        <section class="page-section matrix">
+            <h3>Por qué no se dejó la explicación en “usa un webhook y ya”</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Problema</th>
+                        <th>Qué ocurre</th>
+                        <th>Cómo lo resuelve el laboratorio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Disparo poco determinista</td>
+                        <td>El polling del plugin Git puede no lanzar el build exactamente cuando el alumno espera.</td>
+                        <td>El relay hace un `POST /build` explícito a Jenkins.</td>
+                    </tr>
+                    <tr>
+                        <td>Credenciales y CSRF</td>
+                        <td>El disparo remoto de Jenkins suele chocar con autenticación y crumb.</td>
+                        <td>El laboratorio desactiva CSRF porque el entorno es local y docente.</td>
+                    </tr>
+                    <tr>
+                        <td>Visibilidad pedagógica</td>
+                        <td>Si el alumno solo ve una URL de webhook, no entiende la cadena completa.</td>
+                        <td>La arquitectura del laboratorio enseña cada salto del proceso.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <div class="footer">Siguiente capítulo: el código Python y la diferencia entre unitarios e integración.</div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker desde cero - Imagenes y Dockerfiles</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a class="nav-brand" href="indice-curso.html"><span class="brand-icon">DK</span><span>Docker desde cero</span></a>
+            <button class="nav-mobile-btn" type="button" aria-label="Abrir menu">Menu</button>
+            <ul class="nav-links">
+                <li><a href="indice-curso.html">0. Indice</a></li>
+                <li><a href="nivel_1_arquitectura.html">1. Arquitectura</a></li>
+                <li><a class="active" href="nivel_2_dockerfiles.html">2. Dockerfiles</a></li>
+                <li><a href="nivel_3_volumenes_redes.html">3. Redes y volumenes</a></li>
+                <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">02</span>
+        <h1>Imagenes y Dockerfiles</h1>
+        <p>Una imagen no es un contenedor ejecutandose. Es la definicion a partir de la cual podras crear contenedores identicos las veces que haga falta.</p>
+    </header>
+
+    <div class="content">
+        <h2>1. La idea basica: una imagen define, un contenedor ejecuta</h2>
+        <p>
+            Si haces un paralelismo demasiado simple, acabas confundiendo conceptos. Asi que vamos directos al mecanismo: una imagen es un artefacto inmutable construido por capas; un contenedor es una instancia de ejecucion creada a partir de esa imagen.
+            Cuando cambias el Dockerfile y reconstruyes, no estas editando el contenedor existente. Estas generando una nueva imagen desde la que luego podras lanzar contenedores nuevos.
+        </p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>Imagen</h5>
+                <ul>
+                    <li>Se construye con <code>docker build</code> o a traves de Compose.</li>
+                    <li>Encadena capas producidas por instrucciones como <code>FROM</code>, <code>RUN</code> y <code>COPY</code>.</li>
+                    <li>No tiene procesos vivos por si misma.</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>Contenedor</h5>
+                <ul>
+                    <li>Se crea a partir de una imagen.</li>
+                    <li>Tiene un sistema de archivos efimero propio, salvo donde uses volumenes o mounts.</li>
+                    <li>Ejecuta un proceso principal definido por <code>CMD</code> o <code>ENTRYPOINT</code>.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>2. Ejemplo base minimo para entender el patron</h2>
+        <p>
+            Antes de mirar Jenkins, conviene ver un Dockerfile pequeno donde cada linea sea facil de leer. Este ejemplo no es el laboratorio real; es el escalon previo para que el real no te caiga encima de golpe.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">dockerfile - Ejemplo base</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>FROM python:3.12-slim
+
+WORKDIR /app
+COPY app.py /app/app.py
+
+CMD ["python", "/app/app.py"]</code></pre>
+        </div>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                    <h5><code>FROM</code> fija la base</h5>
+                    <p>Si haces esto, tu imagen empieza heredando Python 3.12 slim. Si eliges otra base, todo lo demas cambia: paquetes disponibles, tamano y herramientas de sistema.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                    <h5><code>WORKDIR</code> fija el directorio de trabajo</h5>
+                    <p>Si no lo defines, las rutas de <code>COPY</code> y del proceso principal pueden acabar siendo mas confusas de lo necesario.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                    <h5><code>COPY</code> mete codigo en la imagen</h5>
+                    <p>Lo que copies aqui queda dentro de la imagen. Si luego cambias el archivo local, la imagen no cambia hasta que la vuelvas a construir.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                    <h5><code>CMD</code> define el proceso principal por defecto</h5>
+                    <p>Cuando el contenedor arranca, Docker ejecuta ese comando. Si el proceso termina, el contenedor tambien termina.</p>
+                </div>
+            </div>
+        </div>
+
+        <h2>3. Caso real 1: la imagen de Jenkins del laboratorio</h2>
+        <p>
+            El ejemplo base sirve para entender la sintaxis. El laboratorio real obliga a dar un paso mas: necesitamos una imagen de Jenkins que venga preparada con herramientas y configuracion inicial para no depender de clics manuales.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">dockerfile - Jenkins del laboratorio</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>FROM jenkins/jenkins:lts-jdk21
+
+USER root
+
+RUN apt-get update \
+    &amp;&amp; apt-get install -y --no-install-recommends curl git docker.io \
+    &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
+RUN jenkins-plugin-cli --plugin-file /usr/share/jenkins/ref/plugins.txt
+
+COPY ref/init.groovy.d/ /usr/share/jenkins/ref/init.groovy.d/
+
+USER jenkins</code></pre>
+        </div>
+
+        <h3>Que hace cada bloque y por que existe</h3>
+        <p>
+            <strong><code>FROM jenkins/jenkins:lts-jdk21</code>:</strong> no partimos de una imagen vacia. Aprovechamos la distribucion oficial de Jenkins para no reinventar la base.
+        </p>
+        <p>
+            <strong><code>USER root</code>:</strong> es necesario porque vamos a instalar paquetes del sistema. Si intentaras ese <code>apt-get install</code> siendo el usuario <code>jenkins</code>, el build fallaria por permisos.
+        </p>
+        <p>
+            <strong><code>RUN apt-get ... docker.io</code>:</strong> aqui aparece una decision importante del laboratorio. Jenkins no solo ejecuta codigo; tambien necesita poder hablar con Docker para levantar contenedores durante el pipeline.
+        </p>
+        <p>
+            <strong><code>COPY plugins.txt</code> y <code>jenkins-plugin-cli</code>:</strong> convierten la seleccion de plugins en parte de la imagen. Si los instalases a mano desde la web, perderias repetibilidad.
+        </p>
+        <p>
+            <strong><code>COPY ref/init.groovy.d/</code>:</strong> deja scripts de inicializacion dentro de la imagen para que el Jenkins del laboratorio arranque ya preparado.
+        </p>
+        <p>
+            <strong><code>USER jenkins</code>:</strong> tras instalar lo necesario, se vuelve a un usuario menos privilegiado. No es un adorno; es una reduccion del alcance de permisos en tiempo de ejecucion.
+        </p>
+
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Error frecuente:</strong> olvidar volver a <code>USER jenkins</code>. El contenedor seguiria funcionando, pero habrias dejado Jenkins ejecutandose como root sin necesidad.
+            </div>
+        </div>
+
+        <h2>4. Caso real 2: la imagen minima del relay</h2>
+        <p>
+            El segundo Dockerfile del laboratorio sirve para enseñar lo contrario: a veces no hace falta una imagen pesada ni un gran numero de instrucciones. Si el servicio es pequeno, la imagen puede ser pequena y directa.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">dockerfile - Webhook relay</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>FROM python:3.12-slim
+
+WORKDIR /app
+COPY relay.py /app/relay.py
+
+CMD ["python", "/app/relay.py"]</code></pre>
+        </div>
+
+        <p>
+            Este Dockerfile muestra que no siempre necesitas instalar dependencias de sistema, crear usuarios o copiar arboles grandes. Si el servicio hace poco y lo hace bien, su imagen puede ser corta y legible.
+            Para clase es importante mostrar los dos extremos: una imagen compleja porque el servicio lo exige, y una imagen simple porque el servicio no necesita mas.
+        </p>
+
+        <h2>5. Construccion real observada en la sesion</h2>
+        <p>
+            En vez de hablar en abstracto de <code>docker build</code>, el laboratorio se reconstruyo con Compose. Eso permite ver a la vez que imagenes se construyen y como se nombran dentro del proyecto.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">bash - Reconstruir solo las imagenes del lab</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>cd /home/deivit/Lucentia/projects/jenkins-lab
+docker compose build jenkins webhook-relay</code></pre>
+        </div>
+
+        <p>Durante la revalidacion se observaron estos nombres de imagen:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">text - Imagenes generadas</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>jenkins-lab-jenkins
+jenkins-lab-webhook-relay</code></pre>
+        </div>
+
+        <p>
+            Si cambias una linea del Dockerfile de Jenkins y haces <code>docker compose up -d</code> sin <code>--build</code>, seguiras ejecutando la imagen antigua. Este detalle es fuente habitual de confusion en clase: el codigo del Dockerfile puede estar correcto y aun asi no verse reflejado porque no se reconstruyo la imagen.
+        </p>
+
+        <h2>6. Que significa que una imagen se construya por capas</h2>
+        <p>
+            Cada instruccion relevante del Dockerfile genera una capa reutilizable. Si una capa no cambia, Docker puede reutilizarla. En la salida observada del build aparecieron varias lineas <code>CACHED</code> para Jenkins. Eso no es ruido: es la evidencia de que Docker no recompilo lo que seguia siendo identico.
+        </p>
+
+        <div class="info-box info">
+            <span class="info-box-icon">INFO</span>
+            <div class="info-box-text">
+                <strong>Si haces esto:</strong> cambias <code>relay.py</code> y reconstruyes el relay, Docker invalida las capas a partir del <code>COPY relay.py</code>. <strong>Si haces lo otro:</strong> cambias solo el comando de ejecucion, la base <code>python:3.12-slim</code> sigue pudiendo reutilizarse.
+            </div>
+        </div>
+
+        <h2>7. Fallos tipicos cuando empiezas con Dockerfiles</h2>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Fallo 1:</strong> copiar ficheros que no estan en el contexto de build. Si el archivo no esta dentro del directorio que Docker usa como contexto, <code>COPY</code> fallara aunque la ruta te parezca correcta.
+            </div>
+        </div>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Fallo 2:</strong> instalar paquetes como usuario sin privilegios. En el Dockerfile real de Jenkins eso obligo a subir a <code>USER root</code> antes del <code>apt-get install</code>.
+            </div>
+        </div>
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Fallo 3:</strong> creer que editar el Dockerfile cambia automaticamente los contenedores ya creados. No cambia nada hasta que reconstruyes la imagen y vuelves a crear o reiniciar el contenedor de forma adecuada.
+            </div>
+        </div>
+
+        <h2>8. Cierre del capitulo</h2>
+        <ul>
+            <li>Una imagen es la definicion repetible; un contenedor es la ejecucion concreta.</li>
+            <li>El laboratorio combina un Dockerfile complejo y uno minimo para que veas dos patrones reales.</li>
+            <li>La eleccion de usuario y de paquetes del sistema tiene consecuencias directas en permisos y comportamiento.</li>
+            <li>El siguiente paso es entender como esas imagenes se conectan entre si y donde guardan o no guardan estado.</li>
+        </ul>
+
+        <p><strong>Siguiente capitulo:</strong> <a href="nivel_3_volumenes_redes.html">3. Redes, volumenes y mounts: como cooperan y que persiste</a>.</p>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo">LucentIA</div>
+                <p>Despues de leer el YAML, ya toca entender la materia prima que Compose ejecuta: las imagenes.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Continuar</h5>
+                <ul>
+                    <li><a href="nivel_3_volumenes_redes.html">3. Redes y volumenes</a></li>
+                    <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">Las imagenes son el punto de union entre codigo fuente, paquetes del sistema y ejecucion repetible.</div>
+    </footer>
+
+    <script>
+        const navButton = document.querySelector('.nav-mobile-btn');
+        const navLinks = document.querySelector('.nav-links');
+        const navbar = document.querySelector('.navbar');
+
+        if (navButton && navLinks) {
+            navButton.addEventListener('click', () => navLinks.classList.toggle('open'));
+        }
+
+        function copyCode(button) {
+            const code = button.closest('.code-block').querySelector('pre code').innerText;
+            navigator.clipboard.writeText(code);
+            button.textContent = 'Copiado';
+            setTimeout(() => {
+                button.textContent = 'Copiar';
+            }, 1500);
+        }
+
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 12);
+        });
+    </script>
+</body>
+</html>

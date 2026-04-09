@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Lab - Reparación y Validación</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="layout">
+        <div class="topbar">
+            <div class="brand">Jenkins Lab<small>Capítulo 5</small></div>
+            <nav class="nav">
+                <a href="index.html">0. Índice</a>
+                <a href="01-arranque.html">1. Arranque</a>
+                <a href="02-gitea-jenkins.html">2. Gitea + Jenkins</a>
+                <a href="03-codigo-unitarios.html">3. Código + unitarios</a>
+                <a href="04-integracion-fallo.html">4. Integración + fallo</a>
+                <a class="active" href="05-reparacion-validacion.html">5. Reparación</a>
+            </nav>
+        </div>
+
+        <section class="hero page-header">
+            <span class="eyebrow">Capítulo 5</span>
+            <h1>La reparación y el build verde</h1>
+            <p class="lead">Una vez localizado el error, la corrección es pequeña pero significativa: se restituye el filtro correcto de la consulta SQL. Lo importante es que el alumno ve un detalle fino de ingeniería: un cambio de una línea puede modificar el resultado del pipeline entero.</p>
+        </section>
+
+        <section class="page-section panel">
+            <h2>La corrección exacta</h2>
+            <div class="code-shell">
+                <div class="label">Diff conceptual</div>
+                <pre><code>- WHERE module_name = %s
++ WHERE student_name = %s</code></pre>
+            </div>
+            <p>La reparación no cambia la lógica de negocio ni los tests unitarios. Corrige exclusivamente el adaptador de persistencia para que el criterio de lectura coincida con la intención del caso de uso.</p>
+        </section>
+
+        <section class="page-section report">
+            <h2>Resultado real del build 4</h2>
+            <p>En la ejecución validada del laboratorio, el build <strong>4</strong> terminó en <strong class="good">SUCCESS</strong>. El job quedó después con <code>lastBuild = 4</code> y <code>nextBuildNumber = 5</code>.</p>
+            <div class="code-shell">
+                <div class="label">Fragmento real de consola</div>
+                <pre><code>tests/unit/test_gradebook_service.py ... PASSED [100%]
+tests/integration/test_mariadb_repository.py::test_repository_round_trip_against_real_mariadb PASSED
+tests/integration/test_mariadb_repository.py::test_service_average_runs_against_real_mariadb PASSED
+
+============================== 2 passed in 0.03s ===============================
+Finished: SUCCESS</code></pre>
+            </div>
+        </section>
+
+        <section class="page-section step-grid">
+            <div class="step">
+                <h3>Qué debe aprender el alumno del build 3</h3>
+                <ul>
+                    <li>Los unitarios no sustituyen a la integración.</li>
+                    <li>Los logs del pipeline son un material de diagnóstico, no solo un semáforo.</li>
+                    <li>Un adaptador de datos puede romper un caso de uso aunque el dominio esté bien.</li>
+                </ul>
+            </div>
+            <div class="step">
+                <h3>Qué debe aprender del build 4</h3>
+                <ul>
+                    <li>El fix debe ser pequeño y dirigido a la causa raíz.</li>
+                    <li>La validación se hace repitiendo el pipeline, no “dando por hecho” que la línea correcta arregla todo.</li>
+                    <li>La comparación rojo/verde enseña mejor que una explicación puramente teórica.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="note success page-section">
+            <strong>Estado final del laboratorio.</strong> El stack está operativo, el repositorio remoto existe, el webhook de push dispara Jenkins, y la secuencia roja-verde quedó comprobada con builds reales y logs preservados en Jenkins.
+        </section>
+
+        <section class="page-section panel">
+            <h2>Comandos útiles para repetir la práctica</h2>
+            <div class="code-shell">
+                <div class="label">Shell</div>
+                <pre><code>cd /home/deivit/Lucentia/projects/jenkins-lab
+
+# rehacer todo desde cero
+./scripts/run-end-to-end-check.sh
+
+# solo reconfigurar Gitea
+./scripts/bootstrap-gitea.sh
+
+# solo reejecutar la demo bug -> fix
+./scripts/run-demo.sh</code></pre>
+            </div>
+        </section>
+
+        <div class="footer">Fin de la guía. El siguiente paso natural es ampliar el material docente con capturas, preguntas de reflexión y variantes del ejercicio.</div>
+    </div>
+</body>
+</html>

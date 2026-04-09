@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker desde cero - Redes, volumenes y mounts</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a class="nav-brand" href="indice-curso.html"><span class="brand-icon">DK</span><span>Docker desde cero</span></a>
+            <button class="nav-mobile-btn" type="button" aria-label="Abrir menu">Menu</button>
+            <ul class="nav-links">
+                <li><a href="indice-curso.html">0. Indice</a></li>
+                <li><a href="nivel_1_arquitectura.html">1. Arquitectura</a></li>
+                <li><a href="nivel_2_dockerfiles.html">2. Dockerfiles</a></li>
+                <li><a class="active" href="nivel_3_volumenes_redes.html">3. Redes y volumenes</a></li>
+                <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">03</span>
+        <h1>Redes, volumenes y mounts</h1>
+        <p>En cuanto el laboratorio tiene mas de un contenedor, aparecen dos preguntas inevitables: como se hablan entre si y que partes del estado deben sobrevivir cuando destruyes el stack.</p>
+    </header>
+
+    <div class="content">
+        <h2>1. El sistema de archivos del contenedor no es tu disco duro</h2>
+        <p>
+            Un contenedor tiene su propio sistema de archivos en tiempo de ejecucion. Si escribes datos dentro y luego destruyes el contenedor, esos datos desaparecen salvo que los hayas sacado a un volumen o a un bind mount.
+            Esta es una idea que conviene fijar muy pronto, porque cambia la forma de pensar sobre logs, bases de datos, configuracion y directorios de trabajo.
+        </p>
+
+        <div class="info-box info">
+            <span class="info-box-icon">INFO</span>
+            <div class="info-box-text">
+                <strong>Si haces esto:</strong> borras un contenedor creado desde una imagen sin volumenes. <strong>Pasa esto:</strong> pierdes los datos escritos solo dentro de ese contenedor. <strong>Si haces lo otro:</strong> montas un volumen nombrado. <strong>Pasa esto otro:</strong> el contenedor puede desaparecer y el volumen sigue existiendo.
+            </div>
+        </div>
+
+        <h2>2. Ejemplo base: volumen nombrado frente a bind mount</h2>
+        <p>
+            Antes del laboratorio real, conviene distinguir dos mecanismos distintos. Los dos sirven para sacar algo fuera del sistema de archivos efimero del contenedor, pero no resuelven exactamente el mismo problema.
+        </p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>Volumen nombrado</h5>
+                <ul>
+                    <li>Docker lo gestiona por ti.</li>
+                    <li>Es apropiado para datos persistentes de servicios.</li>
+                    <li>En el laboratorio se usa para <code>gitea_data</code> y <code>jenkins_data</code>.</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>Bind mount</h5>
+                <ul>
+                    <li>Conecta una ruta del host con una ruta del contenedor.</li>
+                    <li>Es apropiado cuando necesitas exponer una herramienta o un directorio real del host.</li>
+                    <li>En el laboratorio se usa para <code>/var/run/docker.sock</code> y <code>/usr/bin/docker</code>.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">yaml - Ejemplo base con los dos tipos</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>services:
+  app:
+    image: python:3.12-slim
+    volumes:
+      - app_data:/var/app/data
+      - ./src:/app/src:ro
+
+volumes:
+  app_data:</code></pre>
+        </div>
+
+        <p>
+            En ese ejemplo, <code>app_data</code> sirve para persistir datos propios de la aplicacion y <code>./src:/app/src:ro</code> sirve para exponer codigo del host en modo solo lectura dentro del contenedor.
+            El primer mount habla de persistencia. El segundo habla de visibilidad entre host y contenedor.
+        </p>
+
+        <h2>3. Caso real: lo que persiste en Jenkins Lab</h2>
+        <p>
+            El laboratorio usa volumenes para todo aquello que seria molesto perder en cada reinicio: los datos de Gitea y el directorio de trabajo de Jenkins. Si esos volumenes no existiesen, cada arranque seria una reinstalacion desde cero.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">yaml - Volumenes y mounts reales del laboratorio</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>services:
+  gitea:
+    volumes:
+      - gitea_data:/data
+
+  jenkins:
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+
+volumes:
+  gitea_data:
+  jenkins_data:</code></pre>
+        </div>
+
+        <p>En esta sesion, Compose devolvio exactamente estos volumenes declarados:</p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">text - Volumenes observados</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>gitea_data
+jenkins_data</code></pre>
+        </div>
+
+        <h2>4. Por que Jenkins monta el socket y el binario Docker</h2>
+        <p>
+            Esta es una de las partes mas utiles para clase porque rompe la idea ingenua de que un contenedor siempre vive completamente aislado. El Jenkins del laboratorio necesita hablar con el daemon Docker del host para lanzar otros contenedores durante el pipeline.
+            Para eso no basta con tener instalado Jenkins: hace falta que dentro del contenedor exista acceso al socket del daemon y al binario <code>docker</code>.
+        </p>
+
+        <div class="pipeline">
+            <div class="pipeline-step">
+                <span class="ps-icon">01</span>
+                <span class="ps-label">Jenkins</span>
+                <span class="ps-sub">lee el pipeline</span>
+            </div>
+            <div class="pipeline-arrow">&gt;</div>
+            <div class="pipeline-step">
+                <span class="ps-icon">02</span>
+                <span class="ps-label">Docker sock</span>
+                <span class="ps-sub">expone el daemon</span>
+            </div>
+            <div class="pipeline-arrow">&gt;</div>
+            <div class="pipeline-step">
+                <span class="ps-icon">03</span>
+                <span class="ps-label">docker</span>
+                <span class="ps-sub">ejecuta comandos</span>
+            </div>
+            <div class="pipeline-arrow">&gt;</div>
+            <div class="pipeline-step">
+                <span class="ps-icon">04</span>
+                <span class="ps-label">Contenedores</span>
+                <span class="ps-sub">tests y base efimera</span>
+            </div>
+        </div>
+
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Consecuencia directa:</strong> si quitas el bind mount del socket o del binario Docker, Jenkins deja de poder lanzar contenedores del pipeline. El servicio puede arrancar, pero el flujo de CI se rompe en tiempo de ejecucion.
+            </div>
+        </div>
+
+        <h2>5. Redes: como se hablan entre si los servicios</h2>
+        <p>
+            En Docker Compose, los servicios que comparten red pueden encontrarse por nombre. Ese detalle ahorra mucha configuracion manual y hace que un contenedor pueda llamar a otro sin usar <code>localhost</code> del host.
+            En el laboratorio, el relay no apunta a <code>http://localhost:9090</code>, sino a <code>http://jenkins:8080</code>. Esto solo funciona porque ambos servicios viven en la misma red de Compose.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">yaml - Red declarada del laboratorio</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>services:
+  gitea:
+    networks:
+      - cicd_net
+
+  jenkins:
+    networks:
+      - cicd_net
+
+  webhook-relay:
+    networks:
+      - cicd_net
+
+networks:
+  cicd_net:
+    driver: bridge</code></pre>
+        </div>
+
+        <p>
+            Esa definicion significa que los tres servicios comparten una red bridge llamada <code>cicd_net</code>. Desde dentro de esa red, <code>jenkins</code> es un nombre resoluble, igual que <code>gitea</code> o <code>webhook-relay</code>.
+        </p>
+
+        <h2>6. Verificacion observable de red y estado</h2>
+        <p>
+            No basta con confiar en el YAML. Conviene comprobar que la topologia se ha materializado. Durante la sesion, al listar redes del host aparecio la red declarada por el proyecto:
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">text - Red visible en el host</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>jenkins-lab_cicd_net</code></pre>
+        </div>
+
+        <p>
+            Si esta red no aparece, Compose no ha levantado el proyecto como esperabas. Si aparece la red pero un servicio no puede alcanzar a otro por nombre, el problema suele estar en el nombre de servicio, en la variable de entorno usada o en que ambos no comparten realmente la misma red.
+        </p>
+
+        <h2>7. Tres fallos que merece la pena explicar en clase</h2>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Fallo 1:</strong> usar <code>localhost</code> dentro de un contenedor para referirse a otro servicio. Dentro del contenedor, <code>localhost</code> es ese contenedor, no el servicio vecino.
+            </div>
+        </div>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Fallo 2:</strong> destruir el stack con <code>down -v</code> y esperar que Jenkins o Gitea conserven su estado. Al borrar volumenes, estas pidiendo precisamente lo contrario.
+            </div>
+        </div>
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Fallo 3:</strong> confundir un volumen nombrado con una carpeta del proyecto. Un volumen Docker no vive como un directorio legible al lado del <code>docker-compose.yml</code>; lo gestiona Docker en su almacenamiento interno.
+            </div>
+        </div>
+
+        <h2>8. Cierre del capitulo</h2>
+        <ul>
+            <li>La persistencia no sucede por accidente: hay que declararla.</li>
+            <li>Redes y volumenes resuelven problemas distintos y conviene explicarlos por separado.</li>
+            <li>El Jenkins del laboratorio demuestra un caso real de bind mount al host para poder usar Docker desde dentro del contenedor.</li>
+            <li>El siguiente paso es volver al fichero Compose completo para leerlo como una declaracion operativa y no como una lista de claves YAML sin contexto.</li>
+        </ul>
+
+        <p><strong>Siguiente capitulo:</strong> <a href="nivel_4_compose_basico.html">4. Compose base: leer y ejecutar el YAML sin magia</a>.</p>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo">LucentIA</div>
+                <p>Persistencia y comunicacion son las dos caras que convierten un conjunto de contenedores en un sistema util.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Continuar</h5>
+                <ul>
+                    <li><a href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                    <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">Los contenedores aislados son solo el principio; el sistema aparece cuando decides que persiste y como se conectan las piezas.</div>
+    </footer>
+
+    <script>
+        const navButton = document.querySelector('.nav-mobile-btn');
+        const navLinks = document.querySelector('.nav-links');
+        const navbar = document.querySelector('.navbar');
+
+        if (navButton && navLinks) {
+            navButton.addEventListener('click', () => navLinks.classList.toggle('open'));
+        }
+
+        function copyCode(button) {
+            const code = button.closest('.code-block').querySelector('pre code').innerText;
+            navigator.clipboard.writeText(code);
+            button.textContent = 'Copiado';
+            setTimeout(() => {
+                button.textContent = 'Copiar';
+            }, 1500);
+        }
+
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 12);
+        });
+    </script>
+</body>
+</html>

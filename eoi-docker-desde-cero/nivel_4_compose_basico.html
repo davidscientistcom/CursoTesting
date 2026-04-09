@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker desde cero - Compose base</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a class="nav-brand" href="indice-curso.html"><span class="brand-icon">DK</span><span>Docker desde cero</span></a>
+            <button class="nav-mobile-btn" type="button" aria-label="Abrir menu">Menu</button>
+            <ul class="nav-links">
+                <li><a href="indice-curso.html">0. Indice</a></li>
+                <li><a href="nivel_1_arquitectura.html">1. Arquitectura</a></li>
+                <li><a href="nivel_2_dockerfiles.html">2. Dockerfiles</a></li>
+                <li><a href="nivel_3_volumenes_redes.html">3. Redes y volumenes</a></li>
+                <li><a class="active" href="nivel_4_compose_basico.html">4. Compose base</a></li>
+                <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="page-hero">
+        <span class="page-hero-icon">04</span>
+        <h1>Compose base: leer y ejecutar el YAML sin magia</h1>
+        <p>Compose no añade magia sobre Docker. Lo que hace es declarar en un solo fichero la topologia que de otro modo tendrias que reconstruir a mano comando a comando.</p>
+    </header>
+
+    <div class="content">
+        <h2>1. Que problema resuelve Compose</h2>
+        <p>
+            Si un laboratorio tuviera un solo contenedor, podrias vivir bastante tiempo con <code>docker run</code>. En cuanto aparecen varios servicios, puertos, volumenes, redes y variables de entorno, repetir todo a mano se vuelve fragil.
+            Compose convierte esa secuencia manual en una declaracion versionable.
+        </p>
+
+        <div class="two-col">
+            <div class="mini-card">
+                <h5>Sin Compose</h5>
+                <ul>
+                    <li>Tienes que recordar orden de arranque, flags y nombres.</li>
+                    <li>Un olvido pequeno cambia el comportamiento total del sistema.</li>
+                    <li>Explicar el laboratorio en clase exige reconstruir demasiados detalles operativos.</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5>Con Compose</h5>
+                <ul>
+                    <li>El modelo entero queda descrito en YAML.</li>
+                    <li>Puedes revisarlo, versionarlo y discutirlo antes de arrancar nada.</li>
+                    <li>Los comandos de ciclo de vida se simplifican a <code>up</code>, <code>down</code>, <code>ps</code> y <code>logs</code>.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>2. Ejemplo base: un compose pequeno para fijar la sintaxis</h2>
+        <p>
+            Antes del laboratorio real, conviene ver el esqueleto minimo de un fichero Compose. Asi puedes identificar con claridad que es una seccion raiz y que es una configuracion especifica de servicio.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">yaml - Compose minimo</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>services:
+  web:
+    image: nginx:1.27
+    ports:
+      - "8080:80"
+
+volumes: {}
+networks: {}</code></pre>
+        </div>
+
+        <p>
+            Ese ejemplo sirve para fijar el patron, pero todavia no enseña cooperacion real entre servicios. Para eso volvemos al laboratorio validado.
+        </p>
+
+        <h2>3. Anatomia del Compose real del laboratorio</h2>
+        <p>
+            El archivo <code>docker-compose.yml</code> de Jenkins Lab contiene todos los ingredientes que interesan en una clase: una imagen remota, dos builds locales, puertos, variables, volumenes, red propia y un healthcheck.
+        </p>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Campo</th>
+                        <th>Que expresa</th>
+                        <th>Ejemplo real</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong><code>image</code></strong></td>
+                        <td>Usar una imagen ya existente</td>
+                        <td><code>gitea/gitea:1.22.6</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong><code>build</code></strong></td>
+                        <td>Construir una imagen localmente</td>
+                        <td><code>context: ./jenkins</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong><code>ports</code></strong></td>
+                        <td>Publicar puertos hacia el host</td>
+                        <td><code>9090:8080</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong><code>environment</code></strong></td>
+                        <td>Inyectar variables al proceso</td>
+                        <td><code>JENKINS_URL=http://jenkins:8080</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong><code>volumes</code></strong></td>
+                        <td>Persistencia o acceso a rutas del host</td>
+                        <td><code>jenkins_data:/var/jenkins_home</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong><code>depends_on</code></strong></td>
+                        <td>Orden de arranque basico</td>
+                        <td>relay depende de Jenkins</td>
+                    </tr>
+                    <tr>
+                        <td><strong><code>healthcheck</code></strong></td>
+                        <td>Criterio observable de salud</td>
+                        <td><code>curl -fsS http://localhost:8080/login</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>4. El trozo de YAML que conviene leer despacio</h2>
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">yaml - Recorte representativo del laboratorio</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>services:
+  gitea:
+    image: gitea/gitea:1.22.6
+    container_name: gitea-lab
+    ports:
+      - "3000:3000"
+      - "222:22"
+    volumes:
+      - gitea_data:/data
+
+  jenkins:
+    build:
+      context: ./jenkins
+    container_name: jenkins-lab
+    ports:
+      - "9090:8080"
+      - "50000:50000"
+    depends_on:
+      - gitea
+
+  webhook-relay:
+    build:
+      context: ./webhook-relay
+    depends_on:
+      - jenkins</code></pre>
+        </div>
+
+        <p>
+            Lee este fragmento siguiendo una regla simple: cada servicio responde a tres preguntas. De que imagen sale, que necesita para funcionar y como se expone o conecta con el resto.
+            Si una de esas tres cosas no esta clara al explicarlo, la lectura del YAML todavia es superficial.
+        </p>
+
+        <h2>5. Comandos de ciclo de vida que si debes enseñar</h2>
+        <p>
+            Para una clase en directo conviene limitarse a los comandos que realmente cambian el estado del sistema y cuyo efecto pueda comprobarse enseguida.
+        </p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                    <h5><code>docker compose config</code></h5>
+                    <p>Sirve para validar y expandir la configuracion final. Si el YAML tiene un problema estructural, aqui conviene detectarlo antes del arranque.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                    <h5><code>docker compose up -d --build</code></h5>
+                    <p>Construye lo que haga falta y deja el stack corriendo. Si haces cambios en Dockerfiles y no usas <code>--build</code>, puedes estar ejecutando una imagen vieja.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                    <h5><code>docker compose ps</code></h5>
+                    <p>Muestra si los servicios existen realmente y en que estado estan. No sustituye a los logs, pero es el primer filtro de validacion.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                    <h5><code>docker compose down -v --remove-orphans</code></h5>
+                    <p>Desmonta el laboratorio y, al usar <code>-v</code>, borra tambien los volumenes del proyecto. Si lo ejecutas, estas pidiendo una vuelta al estado cero.</p>
+                </div>
+            </div>
+        </div>
+
+        <h2>6. Evidencia observable que ya tienes antes de abrir Jenkins</h2>
+        <p>
+            En esta sesion, la propia shell ya dejo varias pruebas de que Compose habia materializado el modelo: imagenes construidas, volumenes creados, red creada y servicios arrancados.
+            Es importante decir esto en clase porque muchos alumnos tienden a pensar que Docker solo empieza a ser real cuando abren una interfaz web.
+        </p>
+
+        <div class="code-block">
+            <div class="code-header">
+                <span class="code-lang">text - Extracto de la revalidacion</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+            </div>
+            <pre><code>Image jenkins-lab-webhook-relay Built
+Image jenkins-lab-jenkins Built
+Network jenkins-lab_cicd_net Created
+Volume jenkins-lab_gitea_data Created
+Volume jenkins-lab_jenkins_data Created
+Container gitea-lab Started
+Container jenkins-lab Started
+Container gitea-jenkins-relay Started</code></pre>
+        </div>
+
+        <h2>7. Dos comparaciones que aclaran mucho</h2>
+        <div class="two-col">
+            <div class="mini-card">
+                <h5><code>up -d</code> sin <code>--build</code></h5>
+                <ul>
+                    <li>Mas rapido si no has tocado imagenes.</li>
+                    <li>Peligroso si acabas de editar un Dockerfile.</li>
+                    <li>Puede llevarte a pensar que tu cambio no funciona cuando en realidad no llego a construirse.</li>
+                </ul>
+            </div>
+            <div class="mini-card">
+                <h5><code>up -d --build</code></h5>
+                <ul>
+                    <li>Revisa las imagenes locales antes de arrancar.</li>
+                    <li>Es la opcion segura para demostraciones donde acabas de cambiar algo del entorno.</li>
+                    <li>Fue la opcion usada en esta revalidacion.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>8. Fallos tipicos al trabajar con Compose</h2>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Fallo 1:</strong> cambiar un nombre de servicio y no actualizar las referencias internas. Si el relay espera <code>http://jenkins:8080</code> y renombras el servicio, el DNS interno deja de coincidir.
+            </div>
+        </div>
+        <div class="info-box danger">
+            <span class="info-box-icon">FAIL</span>
+            <div class="info-box-text">
+                <strong>Fallo 2:</strong> usar <code>down -v</code> sin querer. Si lo ejecutas, destruyes tambien los volumenes. En un laboratorio puede interesarte; en un entorno persistente hay que pensarlo antes.
+            </div>
+        </div>
+        <div class="info-box warning">
+            <span class="info-box-icon">WARN</span>
+            <div class="info-box-text">
+                <strong>Fallo 3:</strong> mirar solo la interfaz web y no mirar la salida de Compose. Cuando algo no arranca, la linea util suele estar antes en el terminal que en el navegador.
+            </div>
+        </div>
+
+        <h2>9. Cierre del capitulo</h2>
+        <ul>
+            <li>Compose sirve para declarar y repetir topologias, no solo para ahorrar escritura.</li>
+            <li>Un YAML se entiende mejor si lo lees como una descripcion operativa del sistema.</li>
+            <li>Los comandos utiles en clase son pocos, pero cada uno tiene un efecto muy concreto que debe explicarse.</li>
+            <li>El ultimo paso del curso es ver como convertir todo esto en una demo repetible de principio a fin, con esperas activas y bootstrap automatizado.</li>
+        </ul>
+
+        <p><strong>Siguiente capitulo:</strong> <a href="nivel_5_compose_avanzado.html">5. Repetibilidad: healthchecks, bootstrap y guion de clase en directo</a>.</p>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="brand-logo">LucentIA</div>
+                <p>Compose deja de ser solo YAML cuando lo entiendes como contrato operativo de todo el laboratorio.</p>
+            </div>
+            <div class="footer-links">
+                <h5>Continuar</h5>
+                <ul>
+                    <li><a href="nivel_5_compose_avanzado.html">5. Repetibilidad</a></li>
+                    <li><a href="nivel_1_arquitectura.html">1. Volver a arquitectura</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">Cuando Compose esta bien leido, el arranque deja de ser una secuencia misteriosa de comandos.</div>
+    </footer>
+
+    <script>
+        const navButton = document.querySelector('.nav-mobile-btn');
+        const navLinks = document.querySelector('.nav-links');
+        const navbar = document.querySelector('.navbar');
+
+        if (navButton && navLinks) {
+            navButton.addEventListener('click', () => navLinks.classList.toggle('open'));
+        }
+
+        function copyCode(button) {
+            const code = button.closest('.code-block').querySelector('pre code').innerText;
+            navigator.clipboard.writeText(code);
+            button.textContent = 'Copiado';
+            setTimeout(() => {
+                button.textContent = 'Copiar';
+            }, 1500);
+        }
+
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 12);
+        });
+    </script>
+</body>
+</html>

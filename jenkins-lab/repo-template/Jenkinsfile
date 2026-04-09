@@ -1,0 +1,71 @@
+def pythonImage = 'python:3.12-slim'
+
+pipeline {
+    agent any
+
+    options {
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Tests unitarios') {
+            steps {
+                script {
+                    docker.image(pythonImage).inside('-u root:root') {
+                        sh '''
+                            set -e
+                            mkdir -p reports
+                            python -m venv .venv
+                            . .venv/bin/activate
+                            pip install --upgrade pip
+                            pip install -e .[test]
+                            pytest tests/unit --junitxml=reports/unit.xml
+                        '''
+                    }
+                }
+            }
+            post {
+                always {
+                    junit testResults: 'reports/unit.xml', stdioRetention: 'failed'
+                }
+            }
+        }
+
+        stage('Tests de integracion') {
+            steps {
+                script {
+                    docker.image('mariadb:11.4').withRun('-e MARIADB_ROOT_PASSWORD=rootpass -e MARIADB_DATABASE=gradebook -e MARIADB_USER=gradebook -e MARIADB_PASSWORD=gradebookpass') { db ->
+                        docker.image(pythonImage).inside("--link ${db.id}:db -u root:root") {
+                            sh '''
+                                set -e
+                                mkdir -p reports
+                                export APP_DB_HOST=db
+                                export APP_DB_PORT=3306
+                                export APP_DB_NAME=gradebook
+                                export APP_DB_USER=gradebook
+                                export APP_DB_PASSWORD=gradebookpass
+                                python -m venv .venv
+                                . .venv/bin/activate
+                                pip install --upgrade pip
+                                pip install -e .[test]
+                                python scripts/wait_for_db.py
+                                pytest tests/integration --junitxml=reports/integration.xml
+                            '''
+                        }
+                    }
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'reports/integration.xml', stdioRetention: 'failed'
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,77 @@
+services:
+  gitea:
+    image: gitea/gitea:1.22.6
+    container_name: gitea-lab
+    restart: unless-stopped
+    environment:
+      USER_UID: 1000
+      USER_GID: 1000
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__security__INSTALL_LOCK: "true"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__server__DOMAIN: localhost
+      GITEA__server__ROOT_URL: http://localhost:3000/
+      GITEA__webhook__ALLOWED_HOST_LIST: "*"
+    networks:
+      - cicd_net
+    ports:
+      - "3000:3000"
+      - "222:22"
+    volumes:
+      - gitea_data:/data
+
+  jenkins:
+    build:
+      context: ./jenkins
+    container_name: jenkins-lab
+    user: root
+    restart: unless-stopped
+    environment:
+      JAVA_OPTS: >-
+        -Xmx768m
+        -Xms384m
+        -Djava.awt.headless=true
+        -Djenkins.install.runSetupWizard=false
+      JENKINS_OPTS: "--prefix=/"
+      JENKINS_ADMIN_PASSWORD: jenkinsadmin2026
+      JENKINS_STUDENT_PASSWORD: alumno2026
+    networks:
+      - cicd_net
+    ports:
+      - "9090:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_data:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker:ro
+    depends_on:
+      - gitea
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/login"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 60s
+
+  webhook-relay:
+    build:
+      context: ./webhook-relay
+    container_name: gitea-jenkins-relay
+    restart: unless-stopped
+    environment:
+      JENKINS_URL: http://jenkins:8080
+      JENKINS_USER: admin
+      JENKINS_PASSWORD: jenkinsadmin2026
+      JENKINS_JOB_NAME: jenkins-python-lab
+    networks:
+      - cicd_net
+    depends_on:
+      - jenkins
+
+networks:
+  cicd_net:
+    driver: bridge
+
+volumes:
+  gitea_data:
+  jenkins_data:

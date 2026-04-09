@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Lab - Integración y Fallo</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="layout">
+        <div class="topbar">
+            <div class="brand">Jenkins Lab<small>Capítulo 4</small></div>
+            <nav class="nav">
+                <a href="index.html">0. Índice</a>
+                <a href="01-arranque.html">1. Arranque</a>
+                <a href="02-gitea-jenkins.html">2. Gitea + Jenkins</a>
+                <a href="03-codigo-unitarios.html">3. Código + unitarios</a>
+                <a class="active" href="04-integracion-fallo.html">4. Integración + fallo</a>
+                <a href="05-reparacion-validacion.html">5. Reparación</a>
+            </nav>
+        </div>
+
+        <section class="hero page-header">
+            <span class="eyebrow">Capítulo 4</span>
+            <h1>Del doble de prueba a la base de datos real</h1>
+            <p class="lead">En esta fase se sustituye el repositorio falso por un adaptador MariaDB real. El objetivo didáctico es que el alumno vea una diferencia que en proyectos reales es constante: la lógica de negocio puede estar bien y, aun así, el acceso a datos puede estar mal.</p>
+        </section>
+
+        <section class="page-section panel">
+            <h2>Cómo se lanza la integración en Jenkins</h2>
+            <div class="code-shell">
+                <div class="label">Jenkinsfile</div>
+                <pre><code>stage('Tests de integracion') {
+    steps {
+        script {
+            docker.image('mariadb:11.4').withRun(...) { db -&gt;
+                docker.image('python:3.12-slim').inside("--link ${db.id}:db -u root:root") {
+                    sh '''
+                        export APP_DB_HOST=db
+                        export APP_DB_PORT=3306
+                        export APP_DB_NAME=gradebook
+                        export APP_DB_USER=gradebook
+                        export APP_DB_PASSWORD=gradebookpass
+                        python scripts/wait_for_db.py
+                        pytest tests/integration --junitxml=reports/integration.xml
+                    '''
+                }
+            }
+        }
+    }
+}</code></pre>
+            </div>
+            <p>Hay dos contenedores efímeros: uno para la base y otro para el proceso Python de tests. El alumno ve así una topología mínima pero real de un pipeline de integración.</p>
+        </section>
+
+        <section class="page-section two-col">
+            <div class="step">
+                <h3>El bug que se introduce a propósito</h3>
+                <p>En <code>src/gradebook/mariadb_repository.py</code> se cambia la consulta correcta:</p>
+                <div class="code-shell">
+                    <div class="label">Consulta correcta</div>
+                    <pre><code>WHERE student_name = %s</code></pre>
+                </div>
+                <p>por esta variante errónea:</p>
+                <div class="code-shell">
+                    <div class="label">Consulta buggy</div>
+                    <pre><code>WHERE module_name = %s</code></pre>
+                </div>
+            </div>
+
+            <div class="step">
+                <h3>Qué efecto produce</h3>
+                <ul>
+                    <li>La inserción en MariaDB sí ocurre.</li>
+                    <li>La lectura posterior no encuentra filas para el alumno.</li>
+                    <li>El repositorio devuelve una lista vacía.</li>
+                    <li>La media calculada por el servicio cae a <code>0.0</code>.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="report page-section">
+            <h2>Resultado real del build 3</h2>
+            <p>En el laboratorio validado, el build <strong>3</strong> terminó en <strong class="bad">FAILURE</strong>. Los unitarios pasaron y la integración falló exactamente como estaba previsto.</p>
+            <div class="code-shell">
+                <div class="label">Fragmento real de consola</div>
+                <pre><code>tests/unit/test_gradebook_service.py ... PASSED [100%]
+
+tests/integration/test_mariadb_repository.py::test_repository_round_trip_against_real_mariadb FAILED
+tests/integration/test_mariadb_repository.py::test_service_average_runs_against_real_mariadb FAILED
+
+E       AssertionError: assert [] == [GradeRecord(...)]
+E       AssertionError: assert 0.0 == 15.0</code></pre>
+            </div>
+        </section>
+
+        <section class="note warning page-section">
+            <strong>Lectura correcta del fallo.</strong> El build rojo no está diciendo “la clase de servicio está mal diseñada”. Está diciendo algo más fino: el contrato de lectura del adaptador MariaDB no coincide con la intención del caso de uso.
+        </section>
+
+        <div class="footer">Siguiente capítulo: corrección del adaptador y validación final en verde.</div>
+    </div>
+</body>
+</html>

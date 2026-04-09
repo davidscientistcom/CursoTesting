@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Lab - Código y Unitarios</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="layout">
+        <div class="topbar">
+            <div class="brand">Jenkins Lab<small>Capítulo 3</small></div>
+            <nav class="nav">
+                <a href="index.html">0. Índice</a>
+                <a href="01-arranque.html">1. Arranque</a>
+                <a href="02-gitea-jenkins.html">2. Gitea + Jenkins</a>
+                <a class="active" href="03-codigo-unitarios.html">3. Código + unitarios</a>
+                <a href="04-integracion-fallo.html">4. Integración + fallo</a>
+                <a href="05-reparacion-validacion.html">5. Reparación</a>
+            </nav>
+        </div>
+
+        <section class="hero page-header">
+            <span class="eyebrow">Capítulo 3</span>
+            <h1>La aplicación de ejemplo y el sentido de los test unitarios</h1>
+            <p class="lead">El código del laboratorio no es un “hola mundo”. Hay una clase de dominio, un contrato de persistencia y un servicio que depende de ese contrato. Esa separación es la base para entender por qué los unitarios pueden pasar aunque el acceso real a la base esté roto.</p>
+        </section>
+
+        <section class="page-section panel">
+            <h2>Diseño mínimo del ejemplo</h2>
+            <div class="code-shell">
+                <div class="label">Estructura Python</div>
+                <pre><code>src/gradebook/
+├── domain.py              # GradeRecord
+├── repository.py          # Protocolo GradeRepository
+├── service.py             # GradebookService
+└── mariadb_repository.py  # Adaptador real a MariaDB</code></pre>
+            </div>
+            <p><code>GradebookService</code> aplica reglas simples: valida entradas, registra notas y calcula la media del alumno. La persistencia queda fuera, detrás de un contrato, para que la lógica se pueda probar sin depender de red, base de datos o Docker.</p>
+        </section>
+
+        <section class="page-section two-col">
+            <div class="step">
+                <h3>Qué prueban los unitarios</h3>
+                <ul>
+                    <li>Que se persiste el registro correcto.</li>
+                    <li>Que la media se calcula solo con las notas del alumno pedido.</li>
+                    <li>Que si no hay datos, la media es <code>0.0</code>.</li>
+                    <li>Que las notas fuera de rango disparan <code>ValueError</code>.</li>
+                </ul>
+            </div>
+
+            <div class="step">
+                <h3>Qué no prueban los unitarios</h3>
+                <ul>
+                    <li>No prueban SQL.</li>
+                    <li>No prueban el nombre de columnas.</li>
+                    <li>No prueban conectividad con MariaDB.</li>
+                    <li>No prueban si una consulta devuelve o no filas reales.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="page-section note">
+            <strong>Idea clave para clase.</strong> Un test unitario en verde no significa que el sistema completo esté sano. Solo significa que la unidad aislada cumple su contrato bajo el doble de prueba que le hemos dado.
+        </section>
+
+        <section class="page-section panel">
+            <h2>Stage unitario del Jenkinsfile</h2>
+            <div class="code-shell">
+                <div class="label">Jenkinsfile</div>
+                <pre><code>stage('Tests unitarios') {
+    steps {
+        script {
+            docker.image('python:3.12-slim').inside('-u root:root') {
+                sh '''
+                    mkdir -p reports
+                    python -m venv .venv
+                    . .venv/bin/activate
+                    pip install -e .[test]
+                    pytest tests/unit --junitxml=reports/unit.xml
+                '''
+            }
+        }
+    }
+}</code></pre>
+            </div>
+            <p>Este stage ya enseña dos mensajes importantes: Jenkins ejecuta el trabajo dentro de un contenedor controlado y publica el XML JUnit para que el alumno pueda inspeccionar el resultado en la interfaz.</p>
+        </section>
+
+        <div class="footer">Siguiente capítulo: el adaptador MariaDB y el fallo intencional de integración.</div>
+    </div>
+</body>
+</html>
