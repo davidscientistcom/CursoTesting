@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nombres Propios en Clean Code — Python</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Prims.js for syntax highlighting if needed, but we'll use simple CSS for now -->
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">🐍</span>
+                <span class="brand-text"><a href="index.html">Clean Code Python</a></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="nombres.html" class="active">Nombres</a></li>
+                <li><a href="funciones.html">Funciones</a></li>
+                <li><a href="clases.html">Clases & SOLID</a></li>
+                <li><a href="comentarios-formato.html">Formato</a></li>
+                <li><a href="manejo-errores.html">Errores</a></li>
+                <li><a href="testing.html">Testing</a></li>
+                <li><a href="arquitectura-hexagonal.html">Arq. Hexagonal</a></li>
+                <li><a href="python-idiomatico.html">Python Idiomático</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header style="padding: 120px 24px 40px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+        <div class="container content" style="max-width: 900px;">
+            <div class="hero-badge">Capítulo 1</div>
+            <h1 class="hero-title" style="font-size: 48px; margin-bottom: 16px;">Nombres <span class="gradient-text python-gradient">Significativos</span></h1>
+            <p style="font-size: 18px;">El primer paso hacia el código limpio es dar nombres que revelen intención. Si necesitas un comentario para explicar qué hace una variable, el nombre es incorrecto.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container content" style="max-width: 900px;">
+            
+            <h2>1. Usa Nombres que Revelen la Intención</h2>
+            <p>El nombre de una variable, función o clase debe responder a las grandes preguntas: por qué existe, qué hace y cómo se usa. Si necesitas un comentario, el nombre no revela intención.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code># Tiempo transcurrido en días
+d = 0  
+
+# ¿Qué es lst? ¿Qué es 4?
+def get_them(lst):
+    list1 = []
+    for x in lst:
+        if x[0] == 4:
+            list1.append(x)
+    return list1
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>elapsed_time_in_days = 0
+
+def get_flagged_cells(game_board):
+    flagged_cells = []
+    for cell in game_board:
+        if cell.is_flagged():
+            flagged_cells.append(cell)
+    return flagged_cells
+</code></pre>
+                </div>
+            </div>
+
+            <h2>2. Evita la Desinformación</h2>
+            <p>Los programadores deben evitar dejar pistas falsas que oscurezcan el significado del código. Evita las palabras cuyos significados varían del pretendido.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code># Es engañoso si no es de tipo List
+account_list = set() 
+
+# Nombres que varían por mínimos caracteres
+xyz_controller_for_efficient_handling_of_strings = ...
+xyz_controller_for_efficient_storage_of_strings = ...
+
+# Usar 'l' (ele minúscula) o 'O' (o mayúscula)
+O = 1
+l = 2
+if O == l:
+    a = l1
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>account_group = set()
+accounts = set()
+
+# Nombres fácilmente distinguibles
+string_handler_controller = ...
+string_storage_controller = ...
+
+# Evita identificadores confusos
+zero = 1
+two = 2
+if zero == two:
+    a = limit_1
+</code></pre>
+                </div>
+            </div>
+
+            <h2>3. Haz Distinciones Significativas</h2>
+            <p>Evita agregar números o palabras redundantes ("noise words") a las variables. Si los nombres deben ser distintos, también deben significar cosas diferentes.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>def copy_chars(a1, a2):
+    for i in range(len(a1)):
+        a2[i] = a1[i]
+
+class ProductInfo: ...
+class ProductData: ...
+
+# Tipos en los nombres (Hungarian Notation)
+name_string = "Juan"
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>def copy_chars(source, destination):
+    for index in range(len(source)):
+        destination[index] = source[index]
+
+class Product: ...
+class ProductSnapshot: ...
+
+# Tipado implícito (usa type hints mejor)
+name: str = "Juan"
+</code></pre>
+                </div>
+            </div>
+
+            <h2>4. Usa Nombres Pronunciables y Buscables</h2>
+            <p>Gran parte de la programación se trata de leer código en equipo. Si no puedes pronunciarlo o buscarlo fácilmente, estás obstaculizando el proceso.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>class DtaRcrd102:
+    def __init__(self):
+        self.genymdhms = current_time()
+        self.modymdhms = current_time()
+        self.pszqint = "102"
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>class Customer:
+    def __init__(self):
+        self.generation_timestamp = current_time()
+        self.modification_timestamp = current_time()
+        self.record_id = "102"
+</code></pre>
+                </div>
+            </div>
+
+            <h2>5. Estándar PEP 8 en Python</h2>
+            <p>El Clean Code es lenguaje agnóstico, pero la implementación sí importa el lenguaje. En Python, el documento pep-0008 dicta las reglas base para nombres.</p>
+            <ul>
+                <li><strong>Módulos y paquetes:</strong> snake_case (cortos, sin guiones bajos si es posible).</li>
+                <li><strong>Clases:</strong> PascalCase (ej. <code>MyClass</code>). Excepciones para clases internas/tooling: `_MyClass`.</li>
+                <li><strong>Funciones y Variables:</strong> snake_case (ej. <code>process_data</code>).</li>
+                <li><strong>Constantes:</strong> SCREAMING_SNAKE_CASE (ej. <code>MAX_OVERFLOW</code>).</li>
+                <li><strong>Privacidad de métodos/atributos:</strong> Prefijo de guión bajo (<code>_private_method</code>) en clases.</li>
+            </ul>
+
+            <div class="alert alert-info">
+                <strong>💡 Tip de Arquitectura de Testing:</strong> Un buen nombrado facilita enormemente los tests. Un test que valide `test_calculate_pay_for_hourly_employee()` es mucho más entendible y confiable que simplemente `test_calc1()`.
+            </div>
+
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <a href="index.html" class="btn btn-outline">← Inicio</a>
+                <a href="funciones.html" class="btn btn-python">Siguiente: Funciones →</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🐍 Curso de Testing y Arquitectura · Clean Code en Python</p>
+    </footer>
+
+</body>
+</html>

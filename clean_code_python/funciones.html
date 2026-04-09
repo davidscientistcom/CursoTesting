@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Funciones Limpias — Python</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">🐍</span>
+                <span class="brand-text"><a href="index.html">Clean Code Python</a></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="nombres.html">Nombres</a></li>
+                <li><a href="funciones.html" class="active">Funciones</a></li>
+                <li><a href="clases.html">Clases & SOLID</a></li>
+                <li><a href="comentarios-formato.html">Formato</a></li>
+                <li><a href="manejo-errores.html">Errores</a></li>
+                <li><a href="testing.html">Testing</a></li>
+                <li><a href="arquitectura-hexagonal.html">Arq. Hexagonal</a></li>
+                <li><a href="python-idiomatico.html">Python Idiomático</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header style="padding: 120px 24px 40px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+        <div class="container content" style="max-width: 900px;">
+            <div class="hero-badge">Capítulo 2</div>
+            <h1 class="hero-title" style="font-size: 48px; margin-bottom: 16px;">El Arte de las <span class="gradient-text python-gradient">Funciones</span></h1>
+            <p style="font-size: 18px;">La regla central de las funciones: "Deben ser pequeñas. La segunda regla es que deben ser todavía más pequeñas". Deben hacer *una sola* cosa y hacerla bien.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container content" style="max-width: 900px;">
+            
+            <h2>1. Pequeñas y Una Sola Cosa (SRP)</h2>
+            <p>Las funciones deben contar una historia, paso a paso, leyendo de arriba a abajo. Si una función tiene múltiples niveles de indentación o <code>if/else/for</code> anidados, probablemente está haciendo demasiadas cosas.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>def process_user_data(user_id):
+    # Fetch data
+    db = get_db_connection()
+    user_data = db.query(f"SELECT * FROM users WHERE id={user_id}")
+    if not user_data:
+        raise Exception("Not found")
+
+    # Format data
+    formatted = {
+        "name": user_data['name'].upper(),
+        "age": user_data['age']
+    }
+
+    # Send Notification
+    email_client = EmailClient()
+    email_client.send(user_data['email'], "Processed", formatted)
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>def process_user_data(user_id):
+    user_data = _fetch_user_from_db(user_id)
+    formatted_data = _format_user_data(user_data)
+    _notify_user(user_data['email'], formatted_data)
+
+# Las funciones privadas (`_fetch...`) encapsulan sus detalles
+</code></pre>
+                </div>
+            </div>
+
+            <h2>2. Evitar Flags en Argumentos (Booleanos)</h2>
+            <p>Pasar un argumento booleano (una 'flag') a una función es una declaración explícita de que la función hace más de una cosa: hace una cosa si es `True` y otra diferente si es `False`.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>def create_file(filename, is_temp):
+    if is_temp:
+        path = f"/tmp/{filename}"
+    else:
+        path = f"/var/lib/{filename}"
+    
+    with open(path, 'w') as f:
+        f.write("test")
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>def create_temp_file(filename):
+    path = f"/tmp/{filename}"
+    _write_to_path(path, "test")
+
+def create_permanent_file(filename):
+    path = f"/var/lib/{filename}"
+    _write_to_path(path, "test")
+</code></pre>
+                </div>
+            </div>
+
+            <h2>3. Argumentos y Objetos de Datos</h2>
+            <p>El número ideal de argumentos para una función es cero (niladic). Luego uno (monadic), y luego dos (dyadic). Funciones con tres o más argumentos (polyadic) deben evitarse en lo posible. Usa objetos, Dataclasses o NamedTuples.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>def make_circle(x, y, radius, color, is_filled):
+    # Too many args
+    pass
+
+make_circle(10.0, 15.5, 5.0, "red", True)
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>@dataclass
+class Point:
+    x: float
+    y: float
+
+@dataclass
+class CircleConfig:
+    radius: float
+    color: str
+    is_filled: bool
+
+def make_circle(center: Point, config: CircleConfig):
+    pass
+</code></pre>
+                </div>
+            </div>
+
+            <h2>4. Command Query Separation (CQS)</h2>
+            <p>Las funciones deberían <strong>hacer algo</strong> (Command) o <strong>responder algo</strong> (Query), pero no ambas cosas a la vez.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>def set_user_property(user, prop, value):
+    try:
+        user[prop] = value
+        return True # Mutó y retornó estado
+    except KeyError:
+        return False
+
+# Causa confusión: ¿Qué significa "if set_property..."?
+if set_user_property(user, 'age', 30):
+    pass
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>def user_has_property(user, prop):
+    return prop in user
+
+def set_user_property(user, prop, value):
+    user[prop] = value
+
+if not user_has_property(user, 'age'):
+    set_user_property(user, 'age', 30)
+</code></pre>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>🛡️ Testing Course Hint:</strong> "Aislabilidad". Si en un test unitario mockear algo es increíblemente doloroso, es señal de que tu función no está haciendo una sola cosa. Romper la función en funciones más pequeñas puras ("pure functions" que no tocan DB o APIs ni mutean estado global) hará el testing inmensamente más fácil, permitiéndote inyectar dependencias y predecir outputs.
+            </div>
+
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <a href="nombres.html" class="btn btn-outline">← Nombres</a>
+                <a href="clases.html" class="btn btn-python">Siguiente: Clases & SOLID →</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🐍 Curso de Testing y Arquitectura · Clean Code en Python</p>
+    </footer>
+
+</body>
+</html>

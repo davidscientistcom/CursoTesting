@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manejo de Errores Limpio en Python — Clean Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">🐍</span>
+                <span class="brand-text"><a href="index.html">Clean Code Python</a></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="nombres.html">Nombres</a></li>
+                <li><a href="funciones.html">Funciones</a></li>
+                <li><a href="clases.html">Clases & SOLID</a></li>
+                <li><a href="comentarios-formato.html">Formato</a></li>
+                <li><a href="manejo-errores.html" class="active">Errores</a></li>
+                <li><a href="testing.html">Testing</a></li>
+                <li><a href="arquitectura-hexagonal.html">Arq. Hexagonal</a></li>
+                <li><a href="python-idiomatico.html">Python Idiomático</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header style="padding: 120px 24px 40px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+        <div class="container content" style="max-width: 900px;">
+            <div class="hero-badge">Capítulo 5</div>
+            <h1 class="hero-title" style="font-size: 48px; margin-bottom: 16px;">Manejo de <span class="gradient-text python-gradient">Errores</span></h1>
+            <p style="font-size: 18px;">El manejo de errores es importante, pero si oscurece la lógica principal de la aplicación, está mal diseñado. "El manejo de errores es una cosa", según el Single Responsibility Principle.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container content" style="max-width: 900px;">
+            
+            <h2>1. Usa Excepciones en lugar de Códigos de Retorno</h2>
+            <p>Retornar flags (como <code>-1</code>, <code>False</code>, o <code>"ERROR"</code>) obliga al llamador a revisar los errores inmediatamente después de cada llamada, desordenando totalmente el flujo principal del código. Lanza excepciones.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica (C style)</div>
+<pre><code>def delete_page(page):
+    if delete_page_record(page) == 'OK':
+        if registry.delete_auth() == 'OK':
+            logger.log("Registro borrado")
+        else:
+            logger.log("Falló Auth")
+    else:
+        logger.log("Falló DB")
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>def delete_page(page):
+    try:
+        delete_page_record(page)
+        registry.delete_auth()
+        logger.log("Registro borrado")
+    except Exception as e:
+        logger.log(f"Falló al borrar: {e}")
+</code></pre>
+                </div>
+            </div>
+
+            <h2>2. Extrae los bloques Try/Except</h2>
+            <p>Los bloques `try/except` son feos estructuralmente, confunden su propia estructura iterando el flujo regular en flujos de error. Según Clean Code, extraer el contenido de un try a una función diferente clarifica inmensamente el código.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Try/Except largo</div>
+<pre><code>def copy_files(files):
+    for f in files:
+        try:
+            # Mucha lógica de negocio
+            # Lectura del file
+            # Validación
+            # Copiar a otro lado
+            # Cerrar archivo...
+            pass
+        except OSError:
+            logger.error("Error OS en archivo")
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>def copy_files(files):
+    for f in files:
+        _copy_single_file(f)
+
+def _copy_single_file(f):
+    try:
+        # Pura lógica de negocio, no anidada
+        _execute_copy_process(f)
+    except OSError:
+        logger.error(f"Error {f}")
+</code></pre>
+                </div>
+            </div>
+
+            <h2>3. Python: EAFP vs LBYL</h2>
+            <p>La comunidad Python adora el concepto <strong>EAFP</strong> (<em>Easier to Ask for Forgiveness than Permission</em>) que significa "usa excepciones". Contrasta con <strong>LBYL</strong> (<em>Look Before You Leap</em>) donde revisas largas cademas de `if not object_is_none:` antes de actuar. Las excepciones son más rápidas y claras en Python.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ LBYL (Mala en Python)</div>
+<pre><code>def process_user(user_dict):
+    # Preguntar permiso
+    if 'config' in user_dict:
+        config = user_dict['config']
+        if 'theme' in config:
+            return config['theme']
+    return "default"
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ EAFP (Pythonic)</div>
+<pre><code>def process_user(user_dict):
+    # Pedir perdón
+    try:
+        return user_dict['config']['theme']
+    except KeyError:
+        return "default"
+</code></pre>
+                </div>
+            </div>
+
+            <h2>4. ¡No devuelvas ni pases `None`!</h2>
+            <p>Devolver `None` por costumbre obliga a todos los scripts conectables intermedios y de cliente a llenar el programa con bloques <code>if check is not None:</code>. Cuando un error ocurre, lanza una Excepción. Si no hay error, pero hay "ausencia de datos", prefiere usar el <strong>Patrón de Objeto Nulo</strong> o devolver listas vacías <code>[]</code> en vez de <code>None</code>.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Común (Devolver None)</div>
+<pre><code>def get_active_users():
+    users = DB.exec("SELECT * FROM users")
+    if not users:
+        return None
+    return users
+
+# Luego quien llama:
+users = get_active_users()
+if users is not None:
+    for u in users: ...
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Limpio (Listas vacías)</div>
+<pre><code>def get_active_users():
+    users = DB.exec("...")
+    # si está vacío retorna []
+    return users if users else []
+
+# El que llama no necesita ifs
+for u in get_active_users():
+    # ...
+    pass
+</code></pre>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <a href="comentarios-formato.html" class="btn btn-outline">← Formato</a>
+                <a href="testing.html" class="btn btn-python">Siguiente: Testing →</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🐍 Curso de Testing y Arquitectura · Clean Code en Python</p>
+    </footer>
+
+</body>
+</html>

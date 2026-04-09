@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Herramientas de testing en Python</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="brand">🧪 Python Testing Bootcamp</div>
+      <ul class="nav-links">
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="herramientas.html" class="active">Herramientas</a></li>
+        <li><a href="ejemplos.html">Ejemplos Reales</a></li>
+        <li><a href="calidad.html">Calidad + PEP8</a></li>
+        <li><a href="demos.html">Demos / Comandos</a></li>
+      </ul>
+      <button class="mobile-btn" id="navToggle">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1>¿Las herramientas que propusiste son buenas?</h1>
+    <p>Sí, en general si tu lista incluye las clásicas de Python (pytest, coverage, tox/nox, linters, type checking). Aquí las ordeno por prioridad y añado las más relevantes hoy.</p>
+  </header>
+
+  <main class="content">
+    <section class="section">
+      <h2>Stack base recomendado (2026)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Área</th><th>Herramienta</th><th>Estado</th><th>Valor real</th></tr></thead>
+          <tbody>
+            <tr><td>Tests unitarios/integración</td><td>pytest</td><td>✅ Imprescindible</td><td>Fixtures potentes, ecosistema enorme, DX excelente</td></tr>
+            <tr><td>Cobertura</td><td>coverage.py + pytest-cov</td><td>✅ Imprescindible</td><td>Mide riesgos, evita “test decorativo”</td></tr>
+            <tr><td>Estilo + lint + formato</td><td>ruff</td><td>✅ Muy recomendado</td><td>Unifica linter y formatter, muy rápido</td></tr>
+            <tr><td>Tipado estático</td><td>mypy o pyright</td><td>✅ Muy recomendado</td><td>Caza errores antes de ejecutar</td></tr>
+            <tr><td>Entornos de prueba</td><td>nox o tox</td><td>✅ Recomendado</td><td>Pruebas reproducibles en múltiples versiones</td></tr>
+            <tr><td>Property-based testing</td><td>hypothesis</td><td>✅ Recomendado</td><td>Encuentra edge cases difíciles de imaginar</td></tr>
+            <tr><td>Manejo de mocks</td><td>pytest-mock</td><td>✅ Recomendado</td><td>Tests más legibles y controlados</td></tr>
+            <tr><td>Mutación</td><td>mutmut / cosmic-ray</td><td>🆕 Muy útil en core crítico</td><td>Comprueba si tus tests detectan cambios malos</td></tr>
+            <tr><td>Seguridad dependencias</td><td>pip-audit + bandit</td><td>✅ Recomendado</td><td>Reduce CVEs y patrones inseguros</td></tr>
+            <tr><td>Automatización git</td><td>pre-commit</td><td>✅ Imprescindible</td><td>Evita basura antes de subir código</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>¿Por qué ruff?</h2>
+      <p><strong>Ruff</strong> es mucho más que un linter: combina el chequeo de estilo, la detección de errores comunes
+      y un formateador ultra rápido. En lugar de encadenar <code>flake8</code>, <code>black</code>, <code>isort</code>
+      e incluso algunos plugins de <code>pylint</code>, con ruff tienes todo en un solo binario que funciona en segundos.
+      Es capaz de corregir el código automáticamente con <code>ruff format</code>, encontrar importaciones sin usar, variables no usadas,
+      nombres de funciones incorrectos, errores de seguridad simples y más (mira la salida en <a href="demos.html">la pestaña de Demos</a>).
+      </p>
+      <pre><code class="command"># ejemplo rápido de uso:
+ruff check src/bad_practices_showcase.py  # muestra advertencias
+ruff format src/bad_practices_showcase.py --diff  # aplica formato y muestra cambios</code></pre>
+      <p>Si vienes de flake8/black, la curva de aprendizaje es mínima y la velocidad hace que los hooks pre-commit terminen casi instantáneo.</p>
+    </section>
+
+    <section class="section">
+      <h2>Novedades/ajustes que suelen faltar</h2>
+      <div class="grid">
+        <article class="card">
+          <h4>Ruff como estándar</h4>
+          <p>Muchos equipos han sustituido combinaciones antiguas (flake8 + isort + black) por ruff para simplificar y acelerar.</p>
+          <span class="tag new">Tendencia fuerte</span>
+        </article>
+        <article class="card">
+          <h4>Mutación selectiva</h4>
+          <p>No para todo el repo. Úsala en módulos críticos (pricing, fraude, permisos) para validar la calidad real de tests.</p>
+          <span class="tag warn">Coste moderado</span>
+        </article>
+        <article class="card">
+          <h4>Contract testing</h4>
+          <p>Con APIs/microservicios, pact-style testing reduce roturas entre consumidor y proveedor.</p>
+          <span class="tag new">Muy útil en microservicios</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Conclusión directa sobre tu lista</h2>
+      <p>Si incluiste herramientas clásicas de testing Python, vas bien encaminado. Para dejarla redonda hoy:</p>
+      <ul>
+        <li>Mantén <strong>pytest + coverage + pre-commit</strong> como núcleo.</li>
+        <li>Añade <strong>ruff</strong> y <strong>mypy/pyright</strong> como gates de calidad.</li>
+        <li>Introduce <strong>hypothesis</strong> y/o <strong>mutación</strong> en zonas críticas.</li>
+        <li>Incluye seguridad básica: <strong>pip-audit</strong> y <strong>bandit</strong>.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">Checklist revisada para testing Python moderno</footer>
+  <script src="app.js"></script>
+</body>
+</html>

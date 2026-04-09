@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Testing y Calidad en Python — Apuntes</title>
+  <meta name="description" content="Guía práctica de herramientas de testing y calidad en Python: qué usar, cuándo y con ejemplos reales." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="brand">🧪 Python Testing Bootcamp</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Inicio</a></li>
+        <li><a href="herramientas.html">Herramientas</a></li>
+        <li><a href="ejemplos.html">Ejemplos Reales</a></li>
+        <li><a href="calidad.html">Calidad + PEP8</a></li>
+        <li><a href="demos.html">Demos / Comandos</a></li>
+      </ul>
+      <button class="mobile-btn" id="navToggle">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1>Testing y calidad en Python, con criterio de producción</h1>
+    <p>
+      He preparado unos apuntes con el mismo enfoque visual que te gusta: claros, prácticos y con ejemplos reales.
+      Incluye revisión de herramientas clásicas, opciones nuevas (2025-2026) y una sección específica de <strong>PEP8</strong> dentro del flujo de calidad.
+    </p>
+    <div class="badges">
+      <span class="badge">pytest</span><span class="badge">coverage.py</span><span class="badge">ruff</span>
+      <span class="badge">mypy</span><span class="badge">hypothesis</span><span class="badge">nox/tox</span>
+      <span class="badge">pre-commit</span><span class="badge">CI</span>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="section">
+      <h2>¿Qué vas a encontrar?</h2>
+      <div class="grid">
+        <article class="card">
+          <h4>1) Evaluación de herramientas</h4>
+          <p>Cuáles siguen siendo top, cuáles son complementarias y cuáles han ganado tracción recientemente.</p>
+          <span class="tag ok">Recomendación actualizada</span>
+        </article>
+        <article class="card">
+          <h4>2) Ejemplos de impacto real</h4>
+          <p>Casos de API, ETL, asincronía y pipelines de datos para ver valor real en coste, velocidad y fiabilidad.</p>
+          <span class="tag ok">Con código</span>
+        </article>
+        <article class="card">
+          <h4>3) Calidad integral</h4>
+          <p>PEP8, tipado, seguridad y automatización en un solo pipeline reproducible.</p>
+          <span class="tag new">Flujo completo</span>
+        </article>
+      </div>
+
+      <div class="callout">
+        Idea central: no basta con “tener tests”; hay que combinar pruebas, estilo, tipado, seguridad y CI para reducir fallos de verdad.
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Arquitectura recomendada del ciclo de calidad</h2>
+      <div class="mermaid">
+flowchart LR
+  A[Commit] --> B[pre-commit: ruff + format + mypy rápido]
+  B --> C[pytest unit + mutation crítica]
+  C --> D[coverage gates]
+  D --> E[CI: integración + e2e + seguridad]
+  E --> F[Deploy]
+      </div>
+      <div class="kpi">
+        <div class="kpi-item">🎯 Cobertura útil: 80%-90% (no obsesión por 100%)</div>
+        <div class="kpi-item">⚡ Feedback local: < 60s</div>
+        <div class="kpi-item">🛡️ Gate de seguridad en CI</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Guía rápida de lectura</h2>
+      <ol>
+        <li>Empieza por <strong>Herramientas</strong> para validar stack y novedades.</li>
+        <li>Sigue con <strong>Ejemplos Reales</strong> para justificar cada herramienta con casos prácticos.</li>
+        <li>Cierra en <strong>Calidad + PEP8</strong> para dejarte un pipeline operativo.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="footer">Python Testing Bootcamp · 2026</footer>
+  <script src="app.js"></script>
+</body>
+</html>

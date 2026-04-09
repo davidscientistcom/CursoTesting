@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formato & Comentarios en Python — Clean Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">🐍</span>
+                <span class="brand-text"><a href="index.html">Clean Code Python</a></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="nombres.html">Nombres</a></li>
+                <li><a href="funciones.html">Funciones</a></li>
+                <li><a href="clases.html">Clases & SOLID</a></li>
+                <li><a href="comentarios-formato.html" class="active">Formato</a></li>
+                <li><a href="manejo-errores.html">Errores</a></li>
+                <li><a href="testing.html">Testing</a></li>
+                <li><a href="arquitectura-hexagonal.html">Arq. Hexagonal</a></li>
+                <li><a href="python-idiomatico.html">Python Idiomático</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header style="padding: 120px 24px 40px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+        <div class="container content" style="max-width: 900px;">
+            <div class="hero-badge">Capítulo 4</div>
+            <h1 class="hero-title" style="font-size: 48px; margin-bottom: 16px;">Comentarios & <span class="gradient-text python-gradient">Formato</span></h1>
+            <p style="font-size: 18px;">Un comentario es, muchas veces, un fracaso de nuestra capacidad de expresarnos en el código. El código miente y cambia, el comentario miente más tiempo. Y sobre el formato: deja que las herramientas automáticas hablen.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container content" style="max-width: 900px;">
+            
+            <h2>1. Explícate en el Código</h2>
+            <p>Antes de escribir un comentario explicativo, pregúntate si no puedes simplemente extraer esa lógica a una función con un nombre descriptivo o renombrar las variables implicadas.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code># Comprobar si el empleado es elegible
+# para recibir beneficios este año completo
+if (employee.flags & HOURLY_FLAG) and \
+   (employee.age > 65):
+    # Logica beneficios
+    pass
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>
+if employee.is_eligible_for_full_benefits():
+    _give_benefits()
+        
+# 'is_eligible_for_full_benefits' se
+# explica por sí mismo
+</code></pre>
+                </div>
+            </div>
+
+            <h2>2. Malos Comentarios: Ruido y Diarios</h2>
+            <p>Comentarios que declaran lo obvio, o bloques gigantes al inicio del archivo con un "Diario de Cambios" (Changelog) son historia del pasado. Hoy tenemos herramientas como <strong>Git</strong> para registrar quién hizo qué y cuándo.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>"""
+12/03/2026 - Bob - Added is_active flag
+13/03/2026 - Alice - Fixed bug in active
+"""
+def is_active():
+    # Retorna si es activo
+    return self._active
+
+# TODO: Remover este bloque que fallaba ayer
+# df['new'] = df['old'] 
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>def es_activo():
+    return self._activo
+
+# Usar TODOs solo para tareas legítimas, 
+# no como excusa para dejar mala deuda.
+# Borra el código comentado. Confía en Git.
+</code></pre>
+                </div>
+            </div>
+
+            <h2>3. Docstrings vs Comentarios</h2>
+            <p>En Python, <code>docstrings</code> (documentación en strings de triple interlineado) son distintos del comentario de línea (<code>#</code>). Docstrings se evalúan como metadatos en <code>__doc__</code> y son la manera estandar de documentar <strong>Módulos, Clases y Funciones API</strong> públicas. No deberías forzar un docstring si el nombre de la función dice todo, salvo en código Open Source o de librería (APIs públicas).</p>
+            
+            <h2>4. Formateo y PEP 8</h2>
+            <p>El formato visual es un proceso de comunicación. Las reglas estándar hoy en Python implican usar <strong>el estándar PEP 8</strong> a través de herramientas automatizadas en los pipelines o el IDE local. Nunca corrijas el formato a mano.</p>
+            <ul>
+                <li><strong>Herramientas recomendadas:</strong> <em>Black</em> ("The uncompromising formatter"), <em>Ruff</em>, o <em>Blue</em>.</li>
+                <li><strong>Densidad Vertical:</strong> Líneas conceptualmente afines deben estar sin espacios. Separa conceptos diferentes (o flujos) con una línea en blanco (Metáfora de párrafos en periódico).</li>
+                <li><strong>Proximidad Horizontal:</strong> Variables se declaran lo más cerca posible de su uso inicial, y no listadas en el inicio de la función "estilo C".</li>
+            </ul>
+
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Estilo desordenado</div>
+<pre><code>def _process(self,data):
+    x=0
+    a,b,c=None,None,None
+    for i in data:
+         if i>0:
+             x+=i
+    return x
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ PEP 8 c/ Black format</div>
+<pre><code>def _process(self, data: list[int]) -> int:
+    total_sum = 0
+    
+    for item in data:
+        if item > 0:
+            total_sum += item
+            
+    return total_sum
+</code></pre>
+                </div>
+            </div>
+
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <a href="clases.html" class="btn btn-outline">← Clases & SOLID</a>
+                <a href="manejo-errores.html" class="btn btn-python">Siguiente: Errores →</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🐍 Curso de Testing y Arquitectura · Clean Code en Python</p>
+    </footer>
+
+</body>
+</html>

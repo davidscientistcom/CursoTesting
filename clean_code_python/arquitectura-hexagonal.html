@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura Hexagonal en Python — Clean Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">🐍</span>
+                <span class="brand-text"><a href="index.html">Clean Code Python</a></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="nombres.html">Nombres</a></li>
+                <li><a href="funciones.html">Funciones</a></li>
+                <li><a href="clases.html">Clases & SOLID</a></li>
+                <li><a href="comentarios-formato.html">Formato</a></li>
+                <li><a href="manejo-errores.html">Errores</a></li>
+                <li><a href="testing.html">Testing</a></li>
+                <li><a href="arquitectura-hexagonal.html" class="active">Arquitectura Hexagonal</a></li>
+                <li><a href="python-idiomatico.html">Python Idiomático</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header style="padding: 120px 24px 40px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+        <div class="container content" style="max-width: 900px;">
+            <div class="hero-badge">Capítulo 8 - Avanzado</div>
+            <h1 class="hero-title" style="font-size: 48px; margin-bottom: 16px;">Arquitectura <span class="gradient-text python-gradient">Hexagonal</span></h1>
+            <p style="font-size: 18px;">También conocida como Arquitectura de Puertos y Adaptadores. Su propósito es <strong>aislar tu lógica de negocio central</strong> (Casos de Uso) de las preocupaciones externas (APIs, Bases de Datos, UI), permitiendo un código altísimamente testeable y mantenible.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container content" style="max-width: 900px;">
+            
+            <h2>1. El Antipatrón: Arquitectura Altamente Acoplada</h2>
+            <p>El problema con la mayoría de scripts y aplicaciones clásicas es que el controlador web, las reglas del negocio, el formato de salida y la base de datos están todos entrelazados. Es imposible hacer tests unitarios puros porque siempre dependes de infraestructura pesada.</p>
+            
+            <div class="code-block" style="margin-bottom: 40px;">
+                <div class="code-header bad">❌ Enfoque Tradicional (Mala Práctica)</div>
+<pre><code># user_service.py (Acoplamiento a SQLAlchemy y Flask/FastAPI)
+import requests
+from database import db_session
+from models import UserDB
+
+def register_user(email: str, name: str):
+    # Regla de Negocio 1: Validar formato
+    if "@" not in email:
+        raise ValueError("Invalid email")
+        
+    # INFRAESTRUCTURA DB
+    existing = db_session.query(UserDB).filter_by(email=email).first()
+    if existing:
+        raise ValueError("User exists")
+        
+    user = UserDB(email=email, name=name)
+    db_session.add(user)
+    db_session.commit()
+    
+    # INFRAESTRUCTURA EXTERNA: Enviar Email (API Rest)
+    requests.post("https://api.sendgrid.com/send", json={
+        "to": email, 
+        "body": f"Welcome {name}!"
+    })
+    
+    return user
+</code></pre>
+            </div>
+            
+            <h3>¿Por qué esto es un problema crítico para el Testing?</h3>
+            <ul>
+                <li><strong>Dependencia de BD:</strong> Para testear que la regla del `@` funciona, ¡necesitas levantar una base de datos o hacer `mock(db_session)` (que es muy denso y propenso a roturas)!</li>
+                <li><strong>Dependencia de Red:</strong> Para probar que no puedes registrar un usuario duplicado, el test intentará enviar un email con la librería `requests`. Te verás forzado a parchear <code>@patch('requests.post')</code> constatemente.</li>
+                <li><strong>Difícil de cambiar:</strong> Si mañana migramos a MongoDB, o cambiamos SendGrid por Amazon SES, toda tu lógica central, que debería ser solo reglas de negocio "if user exists", cambia brutalmente.</li>
+            </ul>
+
+            <hr style="border-color: var(--border); margin: 40px 0;">
+
+            <h2>2. La Solución Hexagonal (Puertos y Adaptadores)</h2>
+            <p>La arquitectura hexagonal define un dominio puro (las Entidades y los Use Cases). Nada en el dominio sabe que existen BBDD o Internet. Para comunicarse con el exterior, el Dominio define <strong>Puertos</strong> (Interfaces/Protocolos en Python). La infraestructura concreta, como PostgreSQL o AWS, implementa esos Puertos a través de <strong>Adaptadores</strong>.</p>
+            
+            <br>
+            <h3>Paso 1: El Dominio Puro y los Puertos (Interfaces)</h3>
+            <div class="code-block mb-4">
+                <div class="code-header good">✅ Dominio/Puertos (Ningún import de BD o Red)</div>
+<pre><code># domain/user.py
+from dataclasses import dataclass
+from typing import Protocol, Optional
+
+@dataclass
+class User:
+    email: str
+    name: str
+
+# PUERTO: Lo que la aplicación necesita para persistir datos.
+class UserRepository(Protocol):
+    def get_by_email(self, email: str) -> Optional[User]: ...
+    def save(self, user: User) -> None: ...
+
+# PUERTO: Lo que la aplicación necesita para notificar.
+class EmailSender(Protocol):
+    def send_welcome_email(self, email: str, name: str) -> None: ...
+</code></pre>
+            </div>
+
+            <br>
+            <h3>Paso 2: El Orquestador (Caso de Uso central)</h3>
+            <p>Aquí reside la <strong>Lógica de Negocio</strong>. Fíjate que solo se comunica vía constructos genéricos de Python (los Puertos `Protocol`), usando la técnica de <a href="testing.html">Inyección de Dependencias</a>.</p>
+            
+            <div class="code-block mb-4">
+                <div class="code-header good">✅ Use Case (100% Cubrible por Tests Rápídos)</div>
+<pre><code># application/register_user.py
+from domain.user import User, UserRepository, EmailSender
+
+class RegisterUserUseCase:
+    # INYECCIÓN: Recibe la infraestructura desde fuera.
+    def __init__(self, repo: UserRepository, mailer: EmailSender):
+        self.repo = repo
+        self.mailer = mailer
+
+    def execute(self, email: str, name: str) -> User:
+        if "@" not in email:
+            raise ValueError("Invalid email")
+            
+        if self.repo.get_by_email(email) is not None:
+            raise ValueError("User exists")
+            
+        new_user = User(email=email, name=name)
+        
+        self.repo.save(new_user)
+        self.mailer.send_welcome_email(email, name)
+        
+        return new_user
+</code></pre>
+            </div>
+
+            <br>
+            <h3>Paso 3: La Infraestructura (Los Adaptadores Reales)</h3>
+            <p>Este es el borde exterior del hexágono. Son componentes sucios o pesados de I/O que <em>implementan</em> (se ajustan) al Protocolo definido por el centro (Dominio/Puertos). Son los "Adaptadores".</p>
+            
+            <div class="code-block mb-4">
+                <div class="code-header good">✅ Adaptadores de Infraestructura</div>
+<pre><code># infra/db_user_repository.py
+from sqlalchemy.orm import Session
+from domain.user import User
+
+class SQLAlchemyUserRepository: # Implementa UserRepository
+    def __init__(self, session: Session):
+        self.session = session
+
+    def get_by_email(self, email: str) -> User | None:
+        # Lógica sucia específica a SQLAlchemy
+        model = self.session.query(UserModel).filter_by(e=email).first()
+        return User(email=model.e, name=model.n) if model else None
+
+    def save(self, user: User) -> None:
+        model = UserModel(e=user.email, n=user.name)
+        self.session.add(model)
+        self.session.commit()
+
+# infra/sendgrid_mailer.py
+import requests
+
+class SendGridEmailSender: # Implementa EmailSender
+    def send_welcome_email(self, email: str, name: str) -> None:
+        requests.post("https://api.sendgrid.com", json={"foo":"bar"})
+</code></pre>
+            </div>
+
+            <br>
+            <h3>Paso 4: Inicializando todo junto (El "Composition Root")</h3>
+            <p>En el framework que elijas (ej. FastAPI), instancias los adaptadores y se los pasas al Caso de Uso.</p>
+            
+            <div class="code-block mb-4">
+                <div class="code-header good">✅ composition_root.py (Entrypoint)</div>
+<pre><code># main.py (FastAPI route)
+from application.register_user import RegisterUserUseCase
+from infra.db_user_repository import SQLAlchemyUserRepository
+from infra.sendgrid_mailer import SendGridEmailSender
+
+@app.post("/users")
+def api_register_user(email: str, name: str):
+    # Instanciamos adaptadores
+    repo = SQLAlchemyUserRepository(db_session)
+    mailer = SendGridEmailSender()
+    
+    # Inyectamos en el centro
+    use_case = RegisterUserUseCase(repo=repo, mailer=mailer)
+    
+    # Ejecutamos!
+    return use_case.execute(email, name)
+</code></pre>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>🧪 La Magia del Testing Vuela:</strong> Para testear el <code>RegisterUserUseCase</code> (la parte más importante del app), ya no tienes que emular base de datos ni `requests`. Tu test unitario es ultra rápido instanciando mocks simples de los protocolos: `class MockRepo: ...` y `class MockMailer: ...` que pasas al constructor en los tests.
+            </div>
+
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <a href="testing.html" class="btn btn-outline">← Testing & TDD</a>
+                <a href="python-idiomatico.html" class="btn btn-python">Siguiente: Python Idiomático →</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🐍 Curso de Testing y Arquitectura · Clean Code en Python</p>
+    </footer>
+
+</body>
+</html>

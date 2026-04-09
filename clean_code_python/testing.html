@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tests Limpios y Arquitectura Testeable — Clean Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">🐍</span>
+                <span class="brand-text"><a href="index.html">Clean Code Python</a></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="nombres.html">Nombres</a></li>
+                <li><a href="funciones.html">Funciones</a></li>
+                <li><a href="clases.html">Clases & SOLID</a></li>
+                <li><a href="comentarios-formato.html">Formato</a></li>
+                <li><a href="manejo-errores.html">Errores</a></li>
+                <li><a href="testing.html" class="active">Testing</a></li>
+                <li><a href="arquitectura-hexagonal.html">Arq. Hexagonal</a></li>
+                <li><a href="arquitectura-hexagonal.html">Arq. Hexagonal</a></li>
+                <li><a href="python-idiomatico.html">Python Idiomático</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header style="padding: 120px 24px 40px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+        <div class="container content" style="max-width: 900px;">
+            <div class="hero-badge">Capítulo 6 - Foco del Curso</div>
+            <h1 class="hero-title" style="font-size: 48px; margin-bottom: 16px;">Tests Limpios y Arquitectura <span class="gradient-text python-gradient">Testeable</span></h1>
+            <p style="font-size: 18px;">El código de producción es solo la mitad del software; la otra mitad son los tests. Los tests unitarios no son un añadido, son <strong>la red de seguridad</strong> que permite que el diseño (la arquitectura) evolucione sin miedo.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container content" style="max-width: 900px;">
+            
+            <h2>1. Las 3 Leyes del TDD (Test-Driven Development)</h2>
+            <p>El ciclo Red-Green-Refactor se rige por tres estrictas leyes que aseguran que todo el código esté cubierto, que los tests guíen el diseño, y que nunca haya exceso de abstracción.</p>
+            <ul>
+                <li><strong>Primera Ley:</strong> No puedes escribir código de producción hasta haber escrito un test unitario que falle.</li>
+                <li><strong>Segunda Ley:</strong> No puedes escribir más del test unitario que lo suficiente para que falle (no compilar/errores léxicos cuentan como fallo).</li>
+                <li><strong>Tercera Ley:</strong> No puedes escribir más código de producción que el suficiente para hacer pasar el test que está fallando actualmente.</li>
+            </ul>
+
+            <h2>2. Inyección de Dependencias (El Secreto de la Testeabilidad)</h2>
+            <p>Si una de tus clases o funciones <strong>instancia</strong> sus propias dependencias internamente (por ejemplo, una conexión a Base de Datos o a una API de Emails), ese código es extremadamente difícil de testear en aislamiento. La solución es <strong>pasarle</strong> (inyeactar) esa dependencia ya instanciada.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ In-testeable (Alto Acoplamiento)</div>
+<pre><code>import requests
+
+class WeatherApp:
+    def __init__(self):
+        # HARDCODED: Díficil de mockear!
+        self.api_url = "http://api.weather"
+        
+    def get_temp(self, city):
+        # Llama a red real cada vez!
+        res = requests.get(f"{self.api_url}/{city}")
+        return res.json()['temp']
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Testeable (Inyección)</div>
+<pre><code>from typing import Protocol
+
+class HttpClient(Protocol):
+    def get(self, url: str) -> dict: ...
+
+class WeatherApp:
+    # Inyectamos el cliente!
+    def __init__(self, client: HttpClient):
+        self.client = client
+        
+    def get_temp(self, city):
+        res = self.client.get(f"url/{city}")
+        return res['temp']
+
+# En Test, pasamos un MockHttpClient !
+</code></pre>
+                </div>
+            </div>
+
+            <h2>3. Separar Lógica Pura de Efectos Secundarios (I/O)</h2>
+            <p>Gran parte de tu sistema no debería necesitar "Mocks" complejos. Si aíslas la <strong>lógica de negocio</strong> central (matemáticas, reglas de usuario, transformaciones de datos) de los <strong>efectos secundarios</strong> (llamar bases de datos, leer archivos, pintar UI), puedes testear el núcleo de manera 100% aislada, super rápido.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mezclado (Lógica + I/O)</div>
+<pre><code>def pay_user(user_id):
+    # I/O Database
+    user = db.query(f"SELECT * FROM u WHERE id={user_id}")
+    
+    # Lógica
+    amount = user.hours * 20
+    if user.is_senior:
+        amount += 100 
+        
+    # I/O API Externa
+    payment_api.send(user.account, amount)
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Separado (Functional Core)</div>
+<pre><code># 1. Función Pura (Fácil de testear!)
+def calculate_pay(user: dict) -> int:
+    amount = user['hours'] * 20
+    if user['is_senior']:
+        amount += 100
+    return amount
+
+# 2. Orquestador Imperativo (Mocks aquí)
+def pay_user(user_id, repo, payment_gateway):
+    user = repo.get_user(user_id)
+    amount = calculate_pay(user)
+    payment_gateway.send(user.account, amount)
+</code></pre>
+                </div>
+            </div>
+
+            <h2>4. Reglas F.I.R.S.T para Tests Limpios</h2>
+            <p>Tus tests de código (pytest, unittest) deben seguir unacrónimo fundamental para que no se conviertan en una carga a largo plazo:</p>
+            <ul>
+                <li><strong>F (Fast):</strong> Rápidos. Si los tests tardan minutos, nadie los correrá. Un test unitario debe ejecutarse en milisegundos.</li>
+                <li><strong>I (Independent):</strong> Independientes. Ningún test debe depender del estado dejado por otro test. Deben poder correr en paralelo o desorden.</li>
+                <li><strong>R (Repeatable):</strong> Repetibles. Deben dar el mismo resultado local, en la CI (GitHub Actions) y sin red.</li>
+                <li><strong>S (Self-Validating):</strong> Auto-validables. Salida binaria: pasan o no pasan. No debes tener que leer un log o un TXT para saber si pasaron.</li>
+                <li><strong>T (Timely):</strong> Oportunos. En TDD, los tests se escriben <em>justo antes</em> del código de producción que los hace pasar.</li>
+            </ul>
+
+            <h2>5. Patrón AAA (Arrange, Act, Assert)</h2>
+            <p>Cada test unitario debe tener una estructura visual clara separada por un salto de línea.</p>
+            
+<pre><code>def test_calculate_pay_for_senior_employee_includes_bonus():
+    # Arrange (Preparar datos y pre-condiciones)
+    senior_employee = {"hours": 10, "is_senior": True}
+    
+    # Act (Llamar a la unidad, la acción real a evaluar)
+    pay = calculate_pay(senior_employee)
+    
+    # Assert (Comprobar resultados)
+    assert pay == 300  # (10 * 20) + 100 bonus
+</code></pre>
+
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <a href="manejo-errores.html" class="btn btn-outline">← Errores</a>
+                <a href="python-idiomatico.html" class="btn btn-python">Siguiente: Python Idiomático →</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🐍 Curso de Testing y Arquitectura · Clean Code en Python</p>
+    </footer>
+
+</body>
+</html>

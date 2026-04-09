@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comandos de Ejemplo - Python Testing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="brand">🧪 Python Testing Bootcamp</div>
+      <ul class="nav-links">
+        <li><a href="index.html">Inicio</a></li>
+        <li><a href="herramientas.html">Herramientas</a></li>
+        <li><a href="ejemplos.html">Ejemplos Reales</a></li>
+        <li><a href="calidad.html">Calidad + PEP8</a></li>
+        <li><a href="demos.html" class="active">Demos / Comandos</a></li>
+      </ul>
+      <button class="mobile-btn" id="navToggle">☰</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1>Ejecuta estas herramientas sobre un archivo de muestra</h1>
+    <p>Copia y pega los comandos en tu terminal dentro de <code>/home/deivit/curso_testing</code> para ver la potencia de cada utilidad.</p>
+  </header>
+
+  <main class="content">
+    <section class="section">
+      <h2>1. RUFF: lint, fix y velocidad</h2>
+      <p>Analiza estilo, errores y puede formatear todo. Está reemplazando a flake8+black+isort en muchos equipos.</p>
+      <div class="code-block">
+        <div class="code-head"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code class="command"># instala ruff si no lo tienes
+pip install ruff
+
+# revisa el fichero de malas prácticas
+ruff check src/bad_practices_showcase.py
+
+# repara automáticamente algunos problemas (formato, imports)
+ruff format src/bad_practices_showcase.py
+
+# vuelve a ejecutar para ver solo avisos restantes</code></pre>
+      </div>
+      <p>Resultados esperados:</p>
+      <ul>
+        <li>Importaciones sin usar, nombres en CamelCase, espacios extra, eval/shell, etc.</li>
+        <li>Al ejecutar <code>ruff format</code>, el archivo se reescribe con estilo correcto.</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2>2. mypy / pyright: chequeo de tipos estático</h2>
+      <p>Detecta que <code>Calcula_Suma</code> se declara con parámetros <code>str</code> pero se llama con enteros.</p>
+      <div class="code-block">
+        <div class="code-head"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code class="command">pip install mypy
+mypy src/bad_practices_showcase.py
+
+# o usando pyright (instala con npm)
+# npm install -g pyright
+# pyright bad_practices_showcase.py</code></pre>
+      </div>
+      <p>El informe mostrará incompatibilidades de tipos y nos recuerda declarar tipos correctos.</p>
+    </section>
+
+    <section class="section">
+      <h2>3. pytest con cobertura</h2>
+      <p>Ejecuta todos los tests (unittest/pytest se mezclan) e imprime un informe de cobertura.</p>
+      <div class="code-block">
+        <div class="code-head"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code class="command">pip install pytest pytest-cov
+
+# ejecuta tests y genera cobertura en terminal
+pytest -q --disable-warnings --cov=src/bad_practices_showcase.py --cov-report=term-missing
+
+# visualiza el HTML (si quieres)
+pytest --cov=src/bad_practices_showcase.py --cov-report=html
+xdg-open htmlcov/index.html</code></pre>
+      </div>
+      <p>Verás líneas sin ejecutar (función <code>funcion_sin_tests</code>, print muerto, etc.).</p>
+    </section>
+
+    <section class="section">
+      <h2>4. hypothesis para encontrar errores ocultos</h2>
+      <p>Corre el test property-based del archivo y deja que genere cientos de casos.</p>
+      <div class="code-block">
+        <div class="code-head"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code class="command">pip install hypothesis
+pytest tests/test_bad_practices_showcase.py::test_con_hypothesis -q
+
+# verás un fallo inmediato; hypothesis imprime el caso minimizado
+</code></pre>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>5. bandit + pip-audit para seguridad</h2>
+      <p>Bandit buscará patrones inseguros en el código, pip-audit listará vulnerabilidades de dependencias.</p>
+      <div class="code-block">
+        <div class="code-head"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code class="command">pip install bandit pip-audit
+bandit -r src/bad_practices_showcase.py
+pip-audit
+</code></pre>
+      </div>
+      <p>Bandit marcará el hardcoded password y el uso de <code>eval</code> o <code>shell=True</code>.</p>
+    </section>
+
+    <section class="section">
+      <h2>6. coverage + mutmut (opcional)</h2>
+      <p>Puede medir cuántas mutaciones tus tests detectan.</p>
+      <div class="code-block">
+        <div class="code-head"><span>bash</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button></div>
+        <pre><code class="command">pip install mutmut
+# inicia mutación en el archivo; detén con Ctrl-C después de unos segundos
+mutmut run src/bad_practices_showcase.py
+mutmut results</code></pre>
+      </div>
+      <p>Verás qué mutaciones (cambios sintéticos) pasan los tests - permite detectar tests débiles.</p>
+    </section>
+  </main>
+
+  <footer class="footer">¡Prueba los comandos y verás cómo cada herramienta aporta valor real!</footer>
+  <script src="app.js"></script>
+</body>
+</html>

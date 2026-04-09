@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clases & SOLID en Python — Clean Code</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-icon">🐍</span>
+                <span class="brand-text"><a href="index.html">Clean Code Python</a></span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="nombres.html">Nombres</a></li>
+                <li><a href="funciones.html">Funciones</a></li>
+                <li><a href="clases.html" class="active">Clases & SOLID</a></li>
+                <li><a href="comentarios-formato.html">Formato</a></li>
+                <li><a href="manejo-errores.html">Errores</a></li>
+                <li><a href="testing.html">Testing</a></li>
+                <li><a href="arquitectura-hexagonal.html">Arq. Hexagonal</a></li>
+                <li><a href="python-idiomatico.html">Python Idiomático</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header style="padding: 120px 24px 40px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+        <div class="container content" style="max-width: 900px;">
+            <div class="hero-badge">Capítulo 3</div>
+            <h1 class="hero-title" style="font-size: 48px; margin-bottom: 16px;">Clases & <span class="gradient-text python-gradient">SOLID</span></h1>
+            <p style="font-size: 18px;">Las clases deben ser pequeñas. Mientras que las funciones se miden en líneas, las clases se miden por <strong>responsabilidades</strong>. El pilar fundamental es la cohesión profunda entre métodos y atributos.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container content" style="max-width: 900px;">
+            
+            <h2>1. Single Responsibility Principle (SRP)</h2>
+            <p>Una clase debe tener una, y solo una, razón para cambiar. Si puedes pensar en más de una responsabilidad para una clase, está haciendo demasiado y debe ser dividida.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>class Employee:
+    def __init__(self, name, hours):
+        self.name = name
+        self.hours = hours
+
+    def calculate_pay(self):
+        # Business logic
+        return self.hours * 20
+
+    def save_to_database(self):
+        # Database logic
+        pass
+        
+    def generate_report(self):
+        # Presentation logic
+        pass
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>class EmployeeData:
+    def __init__(self, name, hours):
+        self.name = name
+        self.hours = hours
+
+class PayCalculator:
+    def calculate(self, emp: EmployeeData):
+        return emp.hours * 20
+
+class EmployeeRepository:
+    def save(self, emp: EmployeeData):
+        pass
+</code></pre>
+                </div>
+            </div>
+
+            <h2>2. Open/Closed Principle (OCP) en Python</h2>
+            <p>El código debería estar <em>abierto para la extensión pero cerrado para modificación</em>. En Python, aprovechamos el Polimorfismo mediante `Protocolos` (Python 3.8+) o Clases Base Abstractas (ABCs) para evitar tocar la lógica principal (los "Use Cases") cuando agregamos nuevos comportamientos.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Mala Práctica</div>
+<pre><code>class NotificationService:
+    def send(self, type: str, message: str):
+        if type == "email":
+            # Send Email
+            pass
+        elif type == "sms":
+            # Send SMS
+            pass
+        # Si queremos añadir PUSH, 
+        # hay que tocar esta clase
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Buena Práctica</div>
+<pre><code>from typing import Protocol
+
+class Notifier(Protocol):
+    def send(self, message: str): ...
+
+class EmailNotifier:
+    def send(self, message: str): ...
+
+class SMSNotifier:
+    def send(self, message: str): ...
+
+# Esta clase nunca cambiará al añadir
+# un nuevo tipo de Notifier
+class NotificationService:
+    def __init__(self, notifier: Notifier):
+        self.notifier = notifier
+        
+    def alert(self, message: str):
+        self.notifier.send(message)
+</code></pre>
+                </div>
+            </div>
+
+            <h2>3. Cohesión y División de Clases</h2>
+            <p>Las clases deben tener una alta cohesión: la mayoría de los métodos deberían usar la mayoría de los atributos de instancia. Si encuentras un grupo de métodos que solo usa un subconjunto específico de variables de la clase (`self.a` y `self.b`), seguramente <strong>ese grupo quiere ser una clase diferente</strong>.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Baja Cohesión</div>
+<pre><code>class UserSettingsManager:
+    def __init__(self):
+        self.theme = "dark"
+        self.font = "Arial"
+        
+        self.db_url = "postgres://..."
+        self.cache_host = "redis"
+
+    def apply_ui_settings(self):
+        # Usa solo theme y font
+        pass
+
+    def connect_infrastructure(self):
+        # Usa solo db_url y cache_host
+        pass
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Alta Cohesión</div>
+<pre><code>class UISettings:
+    def __init__(self):
+        self.theme = "dark"
+        self.font = "Arial"
+        
+    def apply(self):
+        pass
+
+class InfraSettings:
+    def __init__(self):
+        self.db_url = "postgres://..."
+        self.cache_host = "redis"
+        
+    def connect(self):
+        pass
+</code></pre>
+                </div>
+            </div>
+
+            <h2>4. Ley de Demeter (Tell, Don't Ask)</h2>
+            <p>Un objeto no debe conocer la estructura interna de los objetos con los que interactúa. En lugar de pedirle a un objeto sus partes (getters) y operar en ellas, dile al objeto lo que debe hacer (métodos de acción). En Python, los encadenamientos de métodos `obj.get_a().get_b().do_c()` ("train wrecks") son una clara violación.</p>
+            
+            <div class="code-comparison">
+                <div class="code-block">
+                    <div class="code-header bad">❌ Violación (Ask)</div>
+<pre><code># Accediendo a internos profundamente
+zip_code = customer.get_address().get_postal_info().get_zip()
+
+# O en Python moderno con propiedades:
+zip_code = customer.address.postal.zip
+</code></pre>
+                </div>
+                <div class="code-block">
+                    <div class="code-header good">✅ Cumplimiento (Tell)</div>
+<pre><code># Delegando la responsabilidad
+zip_code = customer.get_zip_code()
+
+# Y dentro de Customer:
+class Customer:
+    def get_zip_code(self):
+        return self.address.get_zip_code()
+</code></pre>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Evitar Clases Innecesarias en Python:</strong> Python no es Java o C#. Si tienes una clase con solo `__init__` y un método que hace algo, esa clase quiere ser una función. Si una clase solo tiene getters y setters sin comportamiento, debería ser una `dataclass` o un `dict`. Modismo Python: Keep it Simple.
+            </div>
+
+            <div style="margin-top: 60px; display: flex; justify-content: space-between;">
+                <a href="funciones.html" class="btn btn-outline">← Funciones</a>
+                <a href="comentarios-formato.html" class="btn btn-python">Siguiente: Formato y Comentarios →</a>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🐍 Curso de Testing y Arquitectura · Clean Code en Python</p>
+    </footer>
+
+</body>
+</html>
