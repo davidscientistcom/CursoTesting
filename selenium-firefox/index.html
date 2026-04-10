@@ -161,6 +161,9 @@
                 <p>
                     A fecha de 9 de abril de 2026, el camino simple para este curso es: crear un entorno Conda con Python 3.13, instalar Selenium con pip, comprobar Firefox y levantar la web de prácticas con un servidor HTTP estándar. No hace falta montar backend ni base de datos.
                 </p>
+                <p>
+                    En Linux, el driver de Firefox se instala con <code>geckodriver</code>. Si no está en tu <code>PATH</code>, instálalo con <code>conda install -c conda-forge geckodriver -y</code> antes de ejecutar los ejemplos.
+                </p>
 
                 <div class="code-block">
                     <div class="code-header">
@@ -170,6 +173,7 @@
                     <pre><code>conda create -n selenium-firefox-313 python=3.13 pip -y
 conda activate selenium-firefox-313
 python -m pip install --upgrade pip selenium
+conda install -c conda-forge geckodriver -y
 
 firefox --version
 geckodriver --version
