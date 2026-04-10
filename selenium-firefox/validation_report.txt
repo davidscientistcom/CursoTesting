@@ -1,0 +1,35 @@
+PASS example_01_open_home: Página abierta: Selenium Practice Lab
+PASS example_02_find_by_id: Consulta ejecutada: esperas explícitas
+PASS example_03_find_by_name: Campo name localizado: username
+PASS example_04_find_by_css: Tarjetas selector-card: 3
+PASS example_05_find_by_xpath: Cargar perfil tardío
+PASS example_06_navigation_and_getters: Título: Practice Lab - Formularios | URL: http://127.0.0.1:8765/lab/forms.html
+PASS example_07_firefox_setup_and_url_assert: http://127.0.0.1:8765/lab/windows.html
+PASS example_08_find_elements_and_iteration: Selector card A, Selector card B, Selector card C
+PASS example_09_basic_form_submit: curso_selenium
+PASS example_10_select_dropdown_and_radio: Rol=lead | Plan=enterprise
+PASS example_11_handle_nosuch_element: NoSuchElementException capturada correctamente
+PASS example_12_safe_try_except_finally: TimeoutException capturada
+PASS example_13_checkbox_and_textarea: Necesito automatizar paso a paso con Selenium y Firefox
+PASS example_14_js_alert_accept: Alerta de laboratorio Selenium
+PASS example_15_confirm_dismiss: Confirm cancelado
+PASS example_16_prompt_fill: Prompt recibido: alias_firefox
+PASS example_17_new_tab_switch: Ventana auxiliar del laboratorio
+PASS example_18_iframe_interaction: Guardado: Nota escrita dentro del iframe
+PASS example_19_hover_menu: Menú visible tras hover. Este panel debe abrirse cuando ActionChains mueve el puntero.
+PASS example_20_drag_and_drop: Drag and drop completado
+PASS example_21_double_click: Doble clic detectado: 1
+PASS example_22_context_click: Click derecho capturado
+PASS example_23_scroll_to_reveal: Objetivo activado tras scroll
+PASS example_24_wait_fail_demo: Fallo esperado sin espera explícita
+PASS example_25_explicit_wait_fix: Perfil tardío
+Este bloque aparece después de una espera explícita.
+PASS example_26_implicit_wait_example: Perfil tardío
+Este bloque aparece después de una espera explícita.
+PASS example_27_wait_until_button_enabled: Botón habilitado
+PASS example_28_wait_for_async_results: Resultados visibles: 3
+PASS example_29_wait_for_toast_appear_and_disappear: Toast oculto
+PASS example_30_wait_for_table_rows: Filas cargadas: 3
+
+Todos los ejemplos han pasado contra la web de prácticas.
+

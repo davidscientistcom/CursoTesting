@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium Practice Lab</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body data-page="home">
+    <header class="lab-topbar">
+        <div class="lab-topbar-inner">
+            <div class="lab-brand">
+                <strong id="app-title">Selenium Practice Lab</strong>
+                <span>Laboratorio estático y controlado para Selenium con Python y Firefox</span>
+            </div>
+            <nav class="lab-nav">
+                <a class="active" href="index.html">Inicio</a>
+                <a href="forms.html">Formularios</a>
+                <a href="windows.html">Ventanas</a>
+                <a href="frames.html">Frames</a>
+                <a href="actions.html">Acciones</a>
+                <a href="waits.html">Esperas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="lab-container">
+        <section class="lab-hero">
+            <div class="lab-pill-row">
+                <span class="lab-pill">Ruta estable</span>
+                <span class="lab-pill">Sin backend</span>
+                <span class="lab-pill">Selectores previsibles</span>
+            </div>
+            <h1>Una web de prácticas pensada para romper menos y enseñar más</h1>
+            <p>
+                Este laboratorio existe para el curso de Selenium. No dependes de Facebook, Google o cualquier sitio que cambie su DOM, active protecciones anti-bot o modifique textos entre una clase y otra.
+                Aquí controlas la estructura, los ids, los nombres y los tiempos de carga.
+            </p>
+            <div class="lab-actions">
+                <a class="lab-button" href="forms.html" id="home-primary-link">Ir a formularios</a>
+                <a class="lab-button secondary" href="waits.html" id="home-secondary-link">Ir a esperas</a>
+            </div>
+        </section>
+
+        <section class="lab-panel">
+            <h2>Buscador de portada</h2>
+            <p>Úsalo para los primeros scripts: localizar por id, escribir texto, pulsar un botón y verificar el resultado.</p>
+            <div class="lab-form-grid">
+                <div class="field">
+                    <label for="global-search">Consulta</label>
+                    <input id="global-search" name="globalSearch" type="text" placeholder="selenium firefox wait">
+                </div>
+                <div class="field">
+                    <label for="run-home-search">Acción</label>
+                    <button id="run-home-search" class="lab-button">Ejecutar búsqueda</button>
+                </div>
+            </div>
+            <div class="lab-actions">
+                <span class="status-line" id="home-search-result">Consulta ejecutada: pendiente</span>
+            </div>
+        </section>
+
+        <section class="lab-route-grid">
+            <article class="lab-card route-card" id="route-forms">
+                <h3>Formularios</h3>
+                <p>Inputs, select, radios, checkbox y envío con resultados visibles.</p>
+                <div class="selector-badges">
+                    <span class="selector-badge">id="practice-form"</span>
+                    <span class="selector-badge">name="username"</span>
+                    <span class="selector-badge">id="submit-form"</span>
+                </div>
+            </article>
+            <article class="lab-card route-card" id="route-windows">
+                <h3>Ventanas y alertas</h3>
+                <p>Alert, confirm, prompt, nueva pestaña y popup dedicado.</p>
+                <div class="selector-badges">
+                    <span class="selector-badge">id="show-alert"</span>
+                    <span class="selector-badge">id="open-report-tab"</span>
+                </div>
+            </article>
+            <article class="lab-card route-card" id="route-frames">
+                <h3>Frames</h3>
+                <p>Dos iframes con controles internos para practicar switch_to.frame.</p>
+                <div class="selector-badges">
+                    <span class="selector-badge">id="navigation-frame"</span>
+                    <span class="selector-badge">id="content-frame"</span>
+                </div>
+            </article>
+            <article class="lab-card route-card" id="route-actions">
+                <h3>Acciones</h3>
+                <p>Hover, doble clic, click derecho, drag and drop y scroll hasta objetivo.</p>
+                <div class="selector-badges">
+                    <span class="selector-badge">id="hover-target"</span>
+                    <span class="selector-badge">id="drag-chip"</span>
+                    <span class="selector-badge">id="scroll-button"</span>
+                </div>
+            </article>
+            <article class="lab-card route-card" id="route-waits">
+                <h3>Esperas</h3>
+                <p>Elementos que tardan en aparecer, botones que se habilitan tarde y resultados asíncronos.</p>
+                <div class="selector-badges">
+                    <span class="selector-badge">id="load-profile"</span>
+                    <span class="selector-badge">id="unlock-button"</span>
+                    <span class="selector-badge">id="result-list"</span>
+                </div>
+            </article>
+        </section>
+
+        <section class="lab-table lab-panel">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ruta</th>
+                        <th>Propósito</th>
+                        <th>Qué practicar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>/lab/forms.html</td>
+                        <td>Formularios estables</td>
+                        <td>send_keys, click, Select, find_element, submit</td>
+                    </tr>
+                    <tr>
+                        <td>/lab/windows.html</td>
+                        <td>Diálogos del navegador</td>
+                        <td>alert, confirm, prompt, switch_to.window</td>
+                    </tr>
+                    <tr>
+                        <td>/lab/frames.html</td>
+                        <td>Contextos anidados</td>
+                        <td>switch_to.frame, default_content</td>
+                    </tr>
+                    <tr>
+                        <td>/lab/actions.html</td>
+                        <td>Acciones avanzadas</td>
+                        <td>ActionChains, scroll, drag and drop</td>
+                    </tr>
+                    <tr>
+                        <td>/lab/waits.html</td>
+                        <td>DOM dinámico</td>
+                        <td>WebDriverWait, ExpectedConditions, TimeoutException</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Lab - Popup</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <main class="popup-layout">
+        <section class="lab-panel">
+            <div class="lab-pill-row">
+                <span class="lab-pill">Ventana auxiliar</span>
+                <span class="lab-pill" id="popup-mode">Modo desconocido</span>
+            </div>
+            <h1 id="popup-title">Ventana auxiliar del laboratorio</h1>
+            <p id="popup-description">Si llegas aquí desde Selenium, ya has cambiado de handle correctamente.</p>
+            <div class="lab-actions">
+                <button id="popup-close" class="lab-button" type="button">Marcar revisión</button>
+                <span id="popup-status" class="status-line">Sin revisar</span>
+            </div>
+        </section>
+    </main>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('mode') || 'desconocido';
+        document.getElementById('popup-mode').textContent = `Modo: ${mode}`;
+        document.getElementById('popup-close').addEventListener('click', () => {
+            document.getElementById('popup-status').textContent = 'Revisado';
+        });
+    </script>
+</body>
+</html>

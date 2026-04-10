@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium con Python y Firefox - WebDriver</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="course-body">
+    <div class="course-shell">
+        <nav class="course-navbar">
+            <div class="course-nav-inner">
+                <div class="course-brand">
+                    <strong>Selenium con Python y Firefox</strong>
+                    <span>WebDriver, localizadores, métodos y excepciones</span>
+                </div>
+                <button class="course-nav-toggle" id="courseNavToggle" type="button">Menú</button>
+                <ul class="course-nav-links" id="courseNavLinks">
+                    <li><a href="index.html">1. Introducción</a></li>
+                    <li><a class="active" href="webdriver.html">2. WebDriver</a></li>
+                    <li><a href="interacciones.html">3. Interacciones</a></li>
+                    <li><a href="esperas.html">4. Esperas</a></li>
+                    <li><a class="course-nav-lab" href="lab/forms.html">Laboratorio</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <header class="course-hero">
+            <div class="course-hero-copy">
+                <span class="course-kicker">Pestaña 2 de 4</span>
+                <h1>WebDriver es la capa de control. Si no entiendes esta capa, todo lo demás parece magia.</h1>
+                <p>
+                    WebDriver es la API que ordena al navegador qué hacer y lee lo que el navegador devuelve. Aquí vas a fijar la arquitectura mental correcta: navegador, driver, sesión, DOM, localizador, acción y validación observable.
+                </p>
+                <div class="course-hero-actions">
+                    <a class="course-btn primary" href="interacciones.html">Ir a Interacciones</a>
+                    <a class="course-btn secondary" href="lab/forms.html">Ir a Formularios</a>
+                </div>
+            </div>
+
+            <aside class="course-hero-panel">
+                <div class="panel-chip-row">
+                    <span class="panel-chip">By.ID</span>
+                    <span class="panel-chip">By.CSS_SELECTOR</span>
+                    <span class="panel-chip">By.XPATH</span>
+                    <span class="panel-chip">finally</span>
+                </div>
+                <div class="route-grid">
+                    <article class="route-card">
+                        <h3>Qué vas a fijar aquí</h3>
+                        <p>Métodos básicos, diferencia entre un localizador bueno y uno frágil, y cómo capturar excepciones sin dejar el navegador abierto.</p>
+                    </article>
+                </div>
+            </aside>
+        </header>
+
+        <main class="course-main">
+            <section class="section-card">
+                <h2>Arquitectura básica de Selenium WebDriver</h2>
+                <div class="module-grid">
+                    <article class="module-card">
+                        <div class="module-meta"><span class="pill">Cliente</span></div>
+                        <h3>Tu script Python</h3>
+                        <p>Define la intención: abrir URL, localizar elemento, escribir, pulsar y comprobar.</p>
+                    </article>
+                    <article class="module-card">
+                        <div class="module-meta"><span class="pill">Protocolo</span></div>
+                        <h3>WebDriver</h3>
+                        <p>Convierte llamadas Python en comandos normalizados que el navegador entiende.</p>
+                    </article>
+                    <article class="module-card">
+                        <div class="module-meta"><span class="pill">Ejecución</span></div>
+                        <h3>Firefox</h3>
+                        <p>Renderiza la página, construye el DOM y ejecuta JavaScript. Tus tests siempre pelean contra este estado real.</p>
+                    </article>
+                </div>
+
+                <div class="selector-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Navegador</th>
+                                <th>Driver asociado</th>
+                                <th>Comentario práctico</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Chrome</td>
+                                <td>chromedriver</td>
+                                <td>Muy usado, pero este curso no valida ejemplos sobre Chrome.</td>
+                            </tr>
+                            <tr>
+                                <td>Firefox</td>
+                                <td>geckodriver</td>
+                                <td>Es el navegador objetivo del curso. Todo lo probado aquí está hecho con Firefox.</td>
+                            </tr>
+                            <tr>
+                                <td>Edge</td>
+                                <td>msedgedriver</td>
+                                <td>Conceptualmente igual, pero fuera del alcance práctico de este material.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Localizadores: del más estable al más frágil</h2>
+                <p>
+                    En un curso real, enseñar Selenium sin enseñar criterios de localización es dejar al alumno vendido. El localizador no es un detalle: es la bisagra entre tu test y el DOM.
+                </p>
+                <div class="selector-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Estrategia</th>
+                                <th>Cuándo preferirla</th>
+                                <th>Riesgo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>id</td>
+                                <td>Cuando la página define ids estables y únicos</td>
+                                <td>Bajo</td>
+                            </tr>
+                            <tr>
+                                <td>name</td>
+                                <td>Formularios clásicos</td>
+                                <td>Bajo si el nombre es semántico</td>
+                            </tr>
+                            <tr>
+                                <td>CSS selector</td>
+                                <td>Cuando necesitas combinar clase, atributo y jerarquía sencilla</td>
+                                <td>Medio si te pasas de específico</td>
+                            </tr>
+                            <tr>
+                                <td>XPath</td>
+                                <td>Cuando CSS no basta o necesitas texto visible</td>
+                                <td>Sube rápido si te apoyas en estructura frágil</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="info-box info">
+                    <span class="info-box-icon">INFO</span>
+                    <div class="info-box-text"><strong>Criterio práctico:</strong> primero intenta <code>id</code>, después <code>name</code>, luego un CSS simple. XPath es útil, pero no debe ser tu primer refugio para todo.</div>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Métodos básicos y excepciones que debes conocer ya</h2>
+                <div class="two-column-grid">
+                    <article class="note-card">
+                        <h3>Métodos básicos</h3>
+                        <ul class="section-list">
+                            <li><code>get()</code> abre una URL.</li>
+                            <li><code>find_element()</code> y <code>find_elements()</code> localizan nodos del DOM.</li>
+                            <li><code>send_keys()</code> escribe texto.</li>
+                            <li><code>click()</code> dispara acciones de usuario.</li>
+                            <li><code>current_url</code> y <code>title</code> te permiten validar navegación.</li>
+                        </ul>
+                    </article>
+                    <article class="note-card">
+                        <h3>Excepciones base</h3>
+                        <ul class="section-list">
+                            <li><code>NoSuchElementException</code>: el elemento no existe cuando lo buscas.</li>
+                            <li><code>TimeoutException</code>: la condición esperada no se cumple a tiempo.</li>
+                            <li>Además de capturas específicas, conviene tener un <code>except Exception as exc</code> genérico como último paraguas.</li>
+                        </ul>
+                    </article>
+                </div>
+
+                <div class="info-box danger">
+                    <span class="info-box-icon">FAIL</span>
+                    <div class="info-box-text"><strong>Error muy común:</strong> lanzar una excepción y dejar Firefox abierto porque el script termina a mitad. La forma seria de evitarlo es un <code>finally</code> que cierre el navegador siempre.</div>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Ejemplos validados de WebDriver</h2>
+                <div class="code-block" data-snippet-file="examples/module2_webdriver.py" data-snippet-name="example_07_firefox_setup_and_url_assert">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 7: arrancar Firefox y validar URL</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module2_webdriver.py" data-snippet-name="example_08_find_elements_and_iteration">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 8: recorrer varios elementos</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module2_webdriver.py" data-snippet-name="example_09_basic_form_submit">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 9: envío básico de formulario</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module2_webdriver.py" data-snippet-name="example_10_select_dropdown_and_radio">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 10: Select, radio y checkbox</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module2_webdriver.py" data-snippet-name="example_11_handle_nosuch_element">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 11: capturar NoSuchElementException</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module2_webdriver.py" data-snippet-name="example_12_safe_try_except_finally">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 12: try/except/finally correcto</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer-note">
+            En la siguiente pestaña ya no aprendemos a arrancar Selenium, sino a movernos por la web: formularios, alerts, ventanas, frames y acciones avanzadas.
+        </footer>
+    </div>
+    <script src="snippets-data.js"></script>
+    <script src="course.js"></script>
+</body>
+</html>

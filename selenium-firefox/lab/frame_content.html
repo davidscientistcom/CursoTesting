@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="app.css">
+    <title>Frame Content</title>
+</head>
+<body class="frame-page">
+    <h2 id="frame-content-title">Editor del frame</h2>
+    <p class="lab-frame-note">Aquí escribirás una nota para comprobar que has entrado en el frame correcto.</p>
+    <div class="field">
+        <label for="frame-note">Nota</label>
+        <textarea id="frame-note" name="frameNote" placeholder="Texto dentro del iframe"></textarea>
+    </div>
+    <div class="lab-actions">
+        <button id="frame-save" class="lab-button">Guardar dentro del frame</button>
+        <span id="frame-output" class="status-line">Sin guardar</span>
+    </div>
+    <script>
+        document.getElementById('frame-save').addEventListener('click', () => {
+            const value = document.getElementById('frame-note').value || 'vacío';
+            document.getElementById('frame-output').textContent = `Guardado: ${value}`;
+        });
+    </script>
+</body>
+</html>

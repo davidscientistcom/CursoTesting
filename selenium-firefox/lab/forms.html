@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Lab - Formularios</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body data-page="forms">
+    <header class="lab-topbar">
+        <div class="lab-topbar-inner">
+            <div class="lab-brand">
+                <strong>Practice Lab - Formularios</strong>
+                <span>Todos los controles básicos que usarás al principio del curso</span>
+            </div>
+            <nav class="lab-nav">
+                <a href="index.html">Inicio</a>
+                <a class="active" href="forms.html">Formularios</a>
+                <a href="windows.html">Ventanas</a>
+                <a href="frames.html">Frames</a>
+                <a href="actions.html">Acciones</a>
+                <a href="waits.html">Esperas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="lab-container">
+        <section class="lab-form-panel">
+            <h2>Formulario de alta técnica</h2>
+            <p>La estructura está pensada para practicar varios localizadores: id, name, CSS, XPath y agrupaciones de elementos.</p>
+            <form id="practice-form" class="lab-grid">
+                <div class="field">
+                    <label for="username">Usuario</label>
+                    <input id="username" name="username" type="text" placeholder="selenium_user">
+                </div>
+                <div class="field">
+                    <label for="password">Contraseña</label>
+                    <input id="password" name="password" type="password" placeholder="••••••••">
+                </div>
+                <div class="field">
+                    <label for="role-select">Rol</label>
+                    <select id="role-select" name="role">
+                        <option value="qa">QA</option>
+                        <option value="developer">Developer</option>
+                        <option value="lead">Lead</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="country-select">País</label>
+                    <select id="country-select" name="country">
+                        <option value="es">España</option>
+                        <option value="pt">Portugal</option>
+                        <option value="mx">México</option>
+                    </select>
+                </div>
+                <fieldset class="radio-group">
+                    <legend>Plan de entrenamiento</legend>
+                    <label><input id="plan-basic" type="radio" name="plan" value="basic" checked> Básico</label>
+                    <label><input id="plan-team" type="radio" name="plan" value="team"> Team</label>
+                    <label><input id="plan-enterprise" type="radio" name="plan" value="enterprise"> Enterprise</label>
+                </fieldset>
+                <div class="checkbox-row">
+                    <label><input id="remember-me" type="checkbox" name="remember" value="yes"> Recordar sesión</label>
+                    <label><input id="accept-terms" type="checkbox" name="terms" value="yes"> Acepto las reglas del laboratorio</label>
+                </div>
+                <div class="field" style="grid-column: 1 / -1;">
+                    <label for="bio">Bio</label>
+                    <textarea id="bio" name="bio" placeholder="Describe por qué automatizas y qué quieres validar"></textarea>
+                </div>
+                <div class="lab-actions" style="grid-column: 1 / -1;">
+                    <button id="submit-form" class="lab-button" type="submit">Enviar formulario</button>
+                    <button id="reset-form" class="lab-button ghost" type="button">Resetear</button>
+                    <span class="status-line" id="submit-status">Esperando envío</span>
+                </div>
+            </form>
+        </section>
+
+        <section id="form-result" class="lab-panel hidden">
+            <h2>Resultado de envío</h2>
+            <div class="lab-status-grid">
+                <article class="lab-status"><strong>Usuario</strong><p id="result-username">-</p></article>
+                <article class="lab-status"><strong>Rol</strong><p id="result-role">-</p></article>
+                <article class="lab-status"><strong>País</strong><p id="result-country">-</p></article>
+                <article class="lab-status"><strong>Plan</strong><p id="result-plan">-</p></article>
+                <article class="lab-status"><strong>Bio</strong><p id="result-bio">-</p></article>
+                <article class="lab-status"><strong>Preferencias</strong><p id="result-remember">-</p><p id="result-terms">-</p></article>
+            </div>
+        </section>
+
+        <section class="lab-route-grid">
+            <article class="lab-card selector-card" data-topic="id-name-class">
+                <h3>Selector card A</h3>
+                <p>Úsala para practicar <code>find_elements</code> y contar tarjetas por clase.</p>
+            </article>
+            <article class="lab-card selector-card" data-topic="css-xpath">
+                <h3>Selector card B</h3>
+                <p>Tiene la misma clase que la tarjeta anterior, pero otro atributo <code>data-topic</code>.</p>
+            </article>
+            <article class="lab-card selector-card special-card" data-topic="submit-result">
+                <h3>Selector card C</h3>
+                <p>Sirve para filtrar por clase especial y por atributo personalizado.</p>
+            </article>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Lab - Acciones</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body data-page="actions">
+    <header class="lab-topbar">
+        <div class="lab-topbar-inner">
+            <div class="lab-brand">
+                <strong>Practice Lab - Acciones</strong>
+                <span>Hover, doble clic, click derecho, drag and drop y scroll</span>
+            </div>
+            <nav class="lab-nav">
+                <a href="index.html">Inicio</a>
+                <a href="forms.html">Formularios</a>
+                <a href="windows.html">Ventanas</a>
+                <a href="frames.html">Frames</a>
+                <a class="active" href="actions.html">Acciones</a>
+                <a href="waits.html">Esperas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="lab-container">
+        <section class="lab-actions-grid">
+            <article class="lab-drop-panel">
+                <h2>Hover</h2>
+                <div id="hover-zone" class="hover-zone">
+                    <button id="hover-target" class="lab-button ghost" type="button">Pasa el ratón por aquí</button>
+                    <div id="hover-panel" class="hover-panel">
+                        Menú visible tras hover. Este panel debe abrirse cuando ActionChains mueve el puntero.
+                    </div>
+                </div>
+            </article>
+
+            <article class="lab-drop-panel">
+                <h2>Doble clic</h2>
+                <div id="double-box" class="double-box">Haz doble clic en esta caja</div>
+                <div class="lab-actions">
+                    <span id="double-status" class="status-line">Doble clic detectado: 0</span>
+                </div>
+            </article>
+
+            <article class="lab-drop-panel">
+                <h2>Click derecho</h2>
+                <div id="context-zone" class="context-box">Haz click derecho aquí</div>
+                <div class="lab-actions">
+                    <span id="context-status" class="status-line">Sin click derecho todavía</span>
+                </div>
+            </article>
+        </section>
+
+        <section class="lab-drop-panel" style="margin-top: 1.5rem;">
+            <h2>Drag and drop</h2>
+            <div class="drop-lane">
+                <div id="drag-chip" class="drag-chip" draggable="true">Arrástrame</div>
+                <div id="drop-zone" class="drop-zone">Suelta aquí el chip</div>
+            </div>
+            <div class="lab-actions">
+                <span id="drop-status" class="status-line">Drag and drop pendiente</span>
+            </div>
+        </section>
+
+        <section class="lab-drop-panel" style="margin-top: 1.5rem;">
+            <h2>Scroll hasta objetivo</h2>
+            <p>El botón útil está al final. Si intentas interactuar sin bajar, lo normal es que tu ejemplo sea menos robusto.</p>
+            <div class="spacer-block"></div>
+            <div class="lab-actions" style="margin-top: 1rem;">
+                <button id="scroll-button" class="lab-button">Objetivo tras scroll</button>
+                <span id="scroll-status" class="status-line">Objetivo pendiente</span>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

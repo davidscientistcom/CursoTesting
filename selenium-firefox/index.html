@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium con Python y Firefox - Introducción</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="course-body">
+    <div class="course-shell">
+        <nav class="course-navbar">
+            <div class="course-nav-inner">
+                <div class="course-brand">
+                    <strong>Selenium con Python y Firefox</strong>
+                    <span>Curso práctico con laboratorio controlado y ejemplos verificados</span>
+                </div>
+                <button class="course-nav-toggle" id="courseNavToggle" type="button">Menú</button>
+                <ul class="course-nav-links" id="courseNavLinks">
+                    <li><a class="active" href="index.html">1. Introducción</a></li>
+                    <li><a href="webdriver.html">2. WebDriver</a></li>
+                    <li><a href="interacciones.html">3. Interacciones</a></li>
+                    <li><a href="esperas.html">4. Esperas</a></li>
+                    <li><a class="course-nav-lab" href="lab/index.html">Laboratorio</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <header class="course-hero">
+            <div class="course-hero-copy">
+                <span class="course-kicker">Pestaña 1 de 4</span>
+                <h1>Selenium desde cero, pero tocando una web real desde el minuto uno</h1>
+                <p>
+                    Este curso no gira alrededor de ejemplos frágiles contra webs públicas. Gira alrededor de una web estática de laboratorio, controlada por ti, con ids estables y tiempos de carga deliberados.
+                    Eso permite enseñar automatización, Selenium, WebDriver y sincronización sin que el material se rompa porque una web externa cambió el DOM ayer por la noche.
+                </p>
+                <div class="course-hero-actions">
+                    <a class="course-btn primary" href="webdriver.html">Ir a WebDriver</a>
+                    <a class="course-btn secondary" href="lab/index.html">Abrir laboratorio</a>
+                    <a class="course-btn ghost" href="validation_report.txt">Ver validación</a>
+                </div>
+                <div class="course-stat-row">
+                    <div class="course-stat"><strong>30</strong><span>Ejemplos Python validados</span></div>
+                    <div class="course-stat"><strong>6</strong><span>Rutas del laboratorio</span></div>
+                    <div class="course-stat"><strong>Python 3.13</strong><span>Entorno Conda documentado</span></div>
+                </div>
+            </div>
+
+            <aside class="course-hero-panel">
+                <div class="panel-chip-row">
+                    <span class="panel-chip">Firefox</span>
+                    <span class="panel-chip">Selenium 4</span>
+                    <span class="panel-chip">Conda</span>
+                    <span class="panel-chip">Web local</span>
+                </div>
+                <div class="summary-strip">
+                    <p><strong>Idea estructural:</strong> primero entiendes por qué automatizas y cómo se instala el stack; después practicas con una web controlada; solo entonces tiene sentido salir a sistemas reales.</p>
+                </div>
+                <div class="route-grid">
+                    <article class="route-card">
+                        <div class="route-meta"><span class="pill">Estable</span><span class="pill alt">DOM fijo</span></div>
+                        <h3>Laboratorio propio</h3>
+                        <p>La web vive en la carpeta del curso. No necesita base de datos ni backend complejo.</p>
+                    </article>
+                    <article class="route-card">
+                        <div class="route-meta"><span class="pill">Reproducible</span><span class="pill alt">Validado</span></div>
+                        <h3>Scripts comprobados</h3>
+                        <p>Los bloques que ves en el curso salen de los scripts reales que se han ejecutado contra la web.</p>
+                    </article>
+                </div>
+            </aside>
+        </header>
+
+        <main class="course-main">
+            <section class="summary-strip">
+                <p><strong>Ruta recomendada:</strong> lee esta pestaña completa, levanta el laboratorio en local, ejecuta los ejemplos 1 a 6 y luego pasa a la pestaña de WebDriver.</p>
+            </section>
+
+            <section class="section-card">
+                <h2>Qué es automatizar pruebas</h2>
+                <p>
+                    Automatizar pruebas significa escribir código que abre una aplicación, reproduce acciones humanas y comprueba resultados observables. La clave no es “hacer clics automáticamente”, sino convertir comportamientos esperados del sistema en verificaciones repetibles.
+                </p>
+                <div class="two-column-grid">
+                    <article class="note-card">
+                        <h3>Ventajas</h3>
+                        <ul class="section-list">
+                            <li>Repites un flujo cien veces sin depender del cansancio o de la memoria humana.</li>
+                            <li>Detectas regresiones cada vez que cambias una pantalla, un flujo o una validación.</li>
+                            <li>Documentas el comportamiento esperado con código ejecutable.</li>
+                            <li>Ganas velocidad en regresión, smoke tests y validaciones repetitivas.</li>
+                        </ul>
+                    </article>
+                    <article class="note-card">
+                        <h3>Desventajas y límites</h3>
+                        <ul class="section-list">
+                            <li>No todo merece automatización: casos raros o flujos muy volátiles pueden salir caros.</li>
+                            <li>Si el DOM cambia y tus selectores son malos, los tests fallan por la capa equivocada.</li>
+                            <li>Si no sincronizas bien, verás falsos negativos por tiempos de carga.</li>
+                            <li>Una suite mal diseñada también cuesta mantenerla.</li>
+                        </ul>
+                    </article>
+                </div>
+
+                <div class="info-box warning">
+                    <span class="info-box-icon">WARN</span>
+                    <div class="info-box-text"><strong>Regla docente de este curso:</strong> trabajamos contra una web controlada porque usar Facebook, Google o cualquier SaaS público te mete ruido que aquí no aporta nada. Cambian ids, textos, políticas anti-bot y flujos. Para aprender Selenium, eso es un estorbo.</div>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Qué es Selenium y cómo ha evolucionado</h2>
+                <p>
+                    Selenium es el ecosistema clásico de automatización de navegadores. Nació con herramientas distintas para necesidades distintas y con el tiempo convergió alrededor de WebDriver como estándar. Hoy Selenium 4 trabaja sobre el protocolo W3C WebDriver y añade Selenium Manager para facilitar la gestión de drivers.
+                </p>
+                <div class="selector-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pieza</th>
+                                <th>Qué hace</th>
+                                <th>Cuándo usarla</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Selenium IDE</td>
+                                <td>Grabador de acciones en el navegador</td>
+                                <td>Demostraciones rápidas o prototipos muy simples</td>
+                            </tr>
+                            <tr>
+                                <td>WebDriver</td>
+                                <td>API programable para controlar el navegador</td>
+                                <td>Automatización seria, mantenible y versionable</td>
+                            </tr>
+                            <tr>
+                                <td>Selenium Grid</td>
+                                <td>Ejecución distribuida en varios nodos y navegadores</td>
+                                <td>Cuando una sola máquina ya no escala</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="check-grid">
+                    <article class="step-card">
+                        <h3>2004-2009</h3>
+                        <p>Selenium nace con herramientas más cercanas a grabación y scripting directo dentro del navegador.</p>
+                    </article>
+                    <article class="step-card">
+                        <h3>WebDriver</h3>
+                        <p>Se consolida como API externa, más sólida y más cercana al comportamiento real del navegador.</p>
+                    </article>
+                    <article class="step-card">
+                        <h3>Selenium 4</h3>
+                        <p>Adopta plenamente W3C WebDriver, mejora Grid y simplifica la gestión de drivers.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Instalación paso a paso con Conda 3.13 y Firefox</h2>
+                <p>
+                    A fecha de 9 de abril de 2026, el camino simple para este curso es: crear un entorno Conda con Python 3.13, instalar Selenium con pip, comprobar Firefox y levantar la web de prácticas con un servidor HTTP estándar. No hace falta montar backend ni base de datos.
+                </p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-lang">bash - Preparación completa del entorno</span>
+                        <button class="copy-btn" type="button">Copiar</button>
+                    </div>
+                    <pre><code>conda create -n selenium-firefox-313 python=3.13 pip -y
+conda activate selenium-firefox-313
+python -m pip install --upgrade pip selenium
+
+firefox --version
+geckodriver --version
+
+cd lucentia/output/learning/selenium-firefox
+python -m http.server 8765</code></pre>
+                </div>
+
+                <div class="info-box info">
+                    <span class="info-box-icon">INFO</span>
+                    <div class="info-box-text"><strong>Qué consigues con esto:</strong> el curso queda servido en <code>http://127.0.0.1:8765/</code> y el laboratorio en <code>http://127.0.0.1:8765/lab/</code>. Los ejemplos Python asumen esa URL base.</div>
+                </div>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-lang">bash - Validar que todo arranca antes de seguir</span>
+                        <button class="copy-btn" type="button">Copiar</button>
+                    </div>
+                    <pre><code>conda activate selenium-firefox-313
+cd lucentia/output/learning/selenium-firefox
+python examples/validate_all.py</code></pre>
+                </div>
+
+                <div class="info-box warning">
+                    <span class="info-box-icon">WARN</span>
+                    <div class="info-box-text"><strong>Si Firefox no arranca:</strong> primero revisa el binario y el driver, no el test. Un fallo de arranque del navegador no significa que tu localizador esté mal; significa que el entorno todavía no está preparado.</div>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Mapa del laboratorio</h2>
+                <div class="lab-grid">
+                    <article class="lab-card">
+                        <h3>Inicio</h3>
+                        <p><code>/lab/index.html</code>. Sirve para abrir el navegador, buscar por id y moverse a otras rutas.</p>
+                    </article>
+                    <article class="lab-card">
+                        <h3>Formularios</h3>
+                        <p><code>/lab/forms.html</code>. Inputs, select, radios, checkboxes y resultado visible.</p>
+                    </article>
+                    <article class="lab-card">
+                        <h3>Ventanas</h3>
+                        <p><code>/lab/windows.html</code>. Alert, confirm, prompt y nuevas pestañas.</p>
+                    </article>
+                    <article class="lab-card">
+                        <h3>Frames</h3>
+                        <p><code>/lab/frames.html</code>. Dos iframes con ids estables.</p>
+                    </article>
+                    <article class="lab-card">
+                        <h3>Acciones</h3>
+                        <p><code>/lab/actions.html</code>. Hover, drag and drop, doble clic, click derecho y scroll.</p>
+                    </article>
+                    <article class="lab-card">
+                        <h3>Esperas</h3>
+                        <p><code>/lab/waits.html</code>. DOM tardío, resultados asíncronos y botones deshabilitados.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Primeros ejemplos validados</h2>
+                <p>
+                    Empieza por estos ejemplos y ejecútalos tal cual. Son el suelo mínimo: abrir página, localizar por id, localizar por name, practicar CSS, XPath y entender cómo leer título y URL actual.
+                </p>
+
+                <div class="code-block" data-snippet-file="examples/module1_intro.py" data-snippet-name="example_01_open_home">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 1: abrir la portada</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module1_intro.py" data-snippet-name="example_02_find_by_id">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 2: localizar por id</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module1_intro.py" data-snippet-name="example_03_find_by_name">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 3: localizar por name</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module1_intro.py" data-snippet-name="example_04_find_by_css">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 4: CSS selector</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module1_intro.py" data-snippet-name="example_05_find_by_xpath">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 5: XPath</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module1_intro.py" data-snippet-name="example_06_navigation_and_getters">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 6: navegar y leer getters</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer-note">
+            Sigue con la pestaña 2 para entender WebDriver, localizadores, métodos y excepciones antes de meterte en ventanas, iframes y esperas complejas.
+        </footer>
+    </div>
+    <script src="snippets-data.js"></script>
+    <script src="course.js"></script>
+</body>
+</html>

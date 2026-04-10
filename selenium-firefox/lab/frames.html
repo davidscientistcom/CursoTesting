@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Lab - Frames</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body data-page="frames">
+    <header class="lab-topbar">
+        <div class="lab-topbar-inner">
+            <div class="lab-brand">
+                <strong>Practice Lab - Frames</strong>
+                <span>Dos iframes para practicar cambio de contexto</span>
+            </div>
+            <nav class="lab-nav">
+                <a href="index.html">Inicio</a>
+                <a href="forms.html">Formularios</a>
+                <a href="windows.html">Ventanas</a>
+                <a class="active" href="frames.html">Frames</a>
+                <a href="actions.html">Acciones</a>
+                <a href="waits.html">Esperas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="lab-container">
+        <section class="lab-panel">
+            <h2>Layout con dos iframes</h2>
+            <p>El primero tiene navegación y el segundo tiene el contenido editable. La práctica consiste en entrar en uno, salir y seguir trabajando en el otro.</p>
+        </section>
+
+        <section class="lab-frame-layout">
+            <div class="frame-wrap">
+                <iframe id="navigation-frame" name="navigation-frame" src="frame_navigation.html" title="Navegación"></iframe>
+                <iframe id="content-frame" name="content-frame" src="frame_content.html" title="Contenido"></iframe>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

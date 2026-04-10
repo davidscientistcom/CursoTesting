@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Lab - Esperas</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body data-page="waits">
+    <header class="lab-topbar">
+        <div class="lab-topbar-inner">
+            <div class="lab-brand">
+                <strong>Practice Lab - Esperas</strong>
+                <span>Elementos que aparecen tarde para practicar sincronización</span>
+            </div>
+            <nav class="lab-nav">
+                <a href="index.html">Inicio</a>
+                <a href="forms.html">Formularios</a>
+                <a href="windows.html">Ventanas</a>
+                <a href="frames.html">Frames</a>
+                <a href="actions.html">Acciones</a>
+                <a class="active" href="waits.html">Esperas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="lab-container">
+        <section class="lab-waits-grid">
+            <article class="lab-panel">
+                <h2>Bloque tardío</h2>
+                <p>Pulsa el botón y el bloque aparecerá más tarde. Este caso existe para demostrar por qué <code>find_element</code> sin espera falla.</p>
+                <div class="lab-actions">
+                    <button id="load-profile" class="lab-button">Cargar perfil tardío</button>
+                    <span id="profile-status" class="status-line">Perfil pendiente</span>
+                </div>
+                <div id="profile-slot" style="margin-top: 1rem;"></div>
+            </article>
+
+            <article class="lab-panel">
+                <h2>Búsqueda asíncrona</h2>
+                <div class="field">
+                    <label for="async-query">Consulta</label>
+                    <input id="async-query" type="text" value="selenium">
+                </div>
+                <div class="lab-actions">
+                    <button id="run-async-search" class="lab-button secondary">Buscar</button>
+                    <div id="search-spinner" class="spinner hidden"></div>
+                    <span id="async-status" class="status-line">Resultados pendientes</span>
+                </div>
+                <div id="result-list" class="results-list hidden"></div>
+            </article>
+
+            <article class="lab-panel">
+                <h2>Botón bloqueado al inicio</h2>
+                <p>El botón se habilita automáticamente a los dos segundos desde la carga de la página.</p>
+                <div class="lab-actions">
+                    <button id="unlock-button" class="lab-button" disabled>Acción desbloqueada</button>
+                    <span id="unlock-status" class="status-line">Esperando habilitación</span>
+                </div>
+            </article>
+        </section>
+
+        <section class="lab-waits-grid" style="margin-top: 1.5rem;">
+            <article class="lab-panel">
+                <h2>Toast temporal</h2>
+                <p>Haz clic y el toast aparecerá más tarde. Es útil para practicar visibilidad y desaparición.</p>
+                <div class="lab-actions">
+                    <button id="trigger-toast" class="lab-button ghost">Lanzar toast</button>
+                    <span id="toast-status" class="status-line">Toast no lanzado</span>
+                </div>
+            </article>
+
+            <article class="lab-panel">
+                <h2>Tabla tardía</h2>
+                <div class="lab-actions">
+                    <button id="load-orders" class="lab-button">Cargar pedidos</button>
+                    <span id="orders-status" class="status-line">Pedidos pendientes</span>
+                </div>
+                <div class="lab-table" style="margin-top: 1rem;">
+                    <table>
+                        <thead>
+                            <tr><th>Pedido</th><th>Estado</th></tr>
+                        </thead>
+                        <tbody id="orders-body"></tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <div id="sync-toast" class="toast hidden">Toast visible. Ya puedes comprobar presencia y desaparición.</div>
+
+    <script src="app.js"></script>
+</body>
+</html>

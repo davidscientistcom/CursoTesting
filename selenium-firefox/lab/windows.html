@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Lab - Ventanas</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body data-page="windows">
+    <header class="lab-topbar">
+        <div class="lab-topbar-inner">
+            <div class="lab-brand">
+                <strong>Practice Lab - Ventanas y alertas</strong>
+                <span>Diálogos del navegador y cambio de pestaña</span>
+            </div>
+            <nav class="lab-nav">
+                <a href="index.html">Inicio</a>
+                <a href="forms.html">Formularios</a>
+                <a class="active" href="windows.html">Ventanas</a>
+                <a href="frames.html">Frames</a>
+                <a href="actions.html">Acciones</a>
+                <a href="waits.html">Esperas</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="lab-container">
+        <section class="lab-panel">
+            <h2>Diálogos del navegador</h2>
+            <p>Practica <code>switch_to.alert</code> con un alert simple, un confirm y un prompt.</p>
+            <div class="lab-actions">
+                <button id="show-alert" class="lab-button">Mostrar alert</button>
+                <button id="show-confirm" class="lab-button secondary">Mostrar confirm</button>
+                <button id="show-prompt" class="lab-button ghost">Mostrar prompt</button>
+            </div>
+            <div class="lab-actions">
+                <span class="status-line" id="dialog-status">Sin diálogo gestionado todavía</span>
+            </div>
+        </section>
+
+        <section class="lab-panel">
+            <h2>Pestañas y ventanas</h2>
+            <p>Estos botones abren una página auxiliar en otra pestaña o en otra ventana. En ambos casos el destino es controlado y estable.</p>
+            <div class="lab-actions">
+                <button id="open-report-tab" class="lab-button">Abrir pestaña de reporte</button>
+                <button id="open-help-window" class="lab-button secondary">Abrir ventana de ayuda</button>
+            </div>
+            <div class="lab-actions">
+                <span class="status-line" id="window-status">Sin cambio de ventana todavía</span>
+            </div>
+        </section>
+
+        <section class="lab-status-grid">
+            <article class="lab-status">
+                <h3>Qué comprobar</h3>
+                <ul>
+                    <li>El texto del alert coincide con lo esperado.</li>
+                    <li>El confirm cambia el estado a aceptado o cancelado.</li>
+                    <li>El prompt deja visible el alias escrito.</li>
+                    <li>La nueva pestaña contiene <code>id="popup-title"</code>.</li>
+                </ul>
+            </article>
+            <article class="lab-status">
+                <h3>Buenas prácticas</h3>
+                <ul>
+                    <li>Guarda la ventana original antes de abrir otra.</li>
+                    <li>Vuelve siempre al handle inicial cuando termines.</li>
+                    <li>No cierres el navegador con ventanas colgando sin saber dónde estás.</li>
+                </ul>
+            </article>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium con Python y Firefox - Interacciones</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="course-body">
+    <div class="course-shell">
+        <nav class="course-navbar">
+            <div class="course-nav-inner">
+                <div class="course-brand">
+                    <strong>Selenium con Python y Firefox</strong>
+                    <span>Formularios, diálogos, ventanas, iframes y acciones avanzadas</span>
+                </div>
+                <button class="course-nav-toggle" id="courseNavToggle" type="button">Menú</button>
+                <ul class="course-nav-links" id="courseNavLinks">
+                    <li><a href="index.html">1. Introducción</a></li>
+                    <li><a href="webdriver.html">2. WebDriver</a></li>
+                    <li><a class="active" href="interacciones.html">3. Interacciones</a></li>
+                    <li><a href="esperas.html">4. Esperas</a></li>
+                    <li><a class="course-nav-lab" href="lab/actions.html">Laboratorio</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <header class="course-hero">
+            <div class="course-hero-copy">
+                <span class="course-kicker">Pestaña 3 de 4</span>
+                <h1>Interacciones reales: de escribir en inputs a cambiar de pestaña, entrar en un iframe o arrastrar un elemento</h1>
+                <p>
+                    En esta pestaña dejas de hacer ejemplos “de hello world” y empiezas a moverte por una interfaz con comportamiento real. Todo está apoyado en la web del laboratorio para que el alumno pueda copiar, pegar y ver qué pasa de verdad.
+                </p>
+                <div class="course-hero-actions">
+                    <a class="course-btn primary" href="esperas.html">Ir a Esperas</a>
+                    <a class="course-btn secondary" href="lab/actions.html">Abrir Acciones</a>
+                </div>
+            </div>
+
+            <aside class="course-hero-panel">
+                <div class="panel-chip-row">
+                    <span class="panel-chip">alerts</span>
+                    <span class="panel-chip">window handles</span>
+                    <span class="panel-chip">iframes</span>
+                    <span class="panel-chip">ActionChains</span>
+                </div>
+                <div class="route-grid">
+                    <article class="route-card">
+                        <h3>Regla de esta pestaña</h3>
+                        <p>Cada concepto se practica contra una ruta concreta del laboratorio. No hay ejemplos “al aire”.</p>
+                    </article>
+                </div>
+            </aside>
+        </header>
+
+        <main class="course-main">
+            <section class="section-card">
+                <h2>Formularios: el caso más básico, pero también el más repetido</h2>
+                <p>
+                    Los formularios son el punto de partida natural porque concentran casi todo lo esencial: localizar inputs, escribir texto, seleccionar opciones, marcar checks y verificar un resultado visible tras el envío.
+                </p>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_13_checkbox_and_textarea">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 13: checkbox y textarea</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Alert, confirm y prompt</h2>
+                <p>
+                    Estos diálogos son especiales porque no viven en el DOM normal de la página. No se localizan con <code>find_element</code>; se gestionan con <code>driver.switch_to.alert</code>.
+                </p>
+                <div class="info-box warning">
+                    <span class="info-box-icon">WARN</span>
+                    <div class="info-box-text"><strong>Consecuencia directa:</strong> si intentas tratar un alert como un div del DOM, el script fallará por concepto, no por sintaxis.</div>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_14_js_alert_accept">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 14: aceptar alert</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_15_confirm_dismiss">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 15: cancelar confirm</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_16_prompt_fill">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 16: rellenar prompt</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Ventanas y pestañas</h2>
+                <p>
+                    Cuando abres una nueva pestaña tienes dos contextos distintos. El error típico es abrirla, seguir ejecutando sobre la ventana original y no entender por qué no aparece el elemento esperado. Por eso hay que guardar el handle inicial, cambiar al nuevo y volver después.
+                </p>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_17_new_tab_switch">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 17: cambio de pestaña</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Iframes: si no cambias de contexto, estás mirando el documento equivocado</h2>
+                <p>
+                    Un iframe tiene su propio DOM. Aunque lo veas incrustado en la página principal, Selenium no entra ahí por arte de magia. Tienes que cambiar el contexto con <code>switch_to.frame</code>, trabajar dentro y volver a <code>default_content()</code> cuando termines.
+                </p>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_18_iframe_interaction">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 18: escribir dentro de un iframe</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Acciones avanzadas con ActionChains</h2>
+                <p>
+                    Aquí ya no basta con <code>click()</code>. Necesitas modelar movimiento del puntero, doble clic, click derecho, arrastre y scroll deliberado.
+                </p>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_19_hover_menu">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 19: hover</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_20_drag_and_drop">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 20: drag and drop</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_21_double_click">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 21: doble clic</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_22_context_click">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 22: click derecho</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module3_interactions.py" data-snippet-name="example_23_scroll_to_reveal">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 23: scroll hasta objetivo</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer-note">
+            La última pestaña está dedicada a sincronización y esperas. Si la saltas, terminarás con tests que fallan según el humor del DOM.
+        </footer>
+    </div>
+    <script src="snippets-data.js"></script>
+    <script src="course.js"></script>
+</body>
+</html>

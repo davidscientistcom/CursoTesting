@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selenium con Python y Firefox - Esperas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="course-body">
+    <div class="course-shell">
+        <nav class="course-navbar">
+            <div class="course-nav-inner">
+                <div class="course-brand">
+                    <strong>Selenium con Python y Firefox</strong>
+                    <span>Sincronización, WebDriverWait y manejo de tiempos</span>
+                </div>
+                <button class="course-nav-toggle" id="courseNavToggle" type="button">Menú</button>
+                <ul class="course-nav-links" id="courseNavLinks">
+                    <li><a href="index.html">1. Introducción</a></li>
+                    <li><a href="webdriver.html">2. WebDriver</a></li>
+                    <li><a href="interacciones.html">3. Interacciones</a></li>
+                    <li><a class="active" href="esperas.html">4. Esperas</a></li>
+                    <li><a class="course-nav-lab" href="lab/waits.html">Laboratorio</a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <header class="course-hero">
+            <div class="course-hero-copy">
+                <span class="course-kicker">Pestaña 4 de 4</span>
+                <h1>Si el DOM todavía no está listo, tu test falla aunque la lógica esté bien</h1>
+                <p>
+                    La mayoría de los fallos frustrantes en Selenium no vienen de un localizador incorrecto, sino de una lectura prematura del DOM. Por eso aquí vas a ver el fallo, entender por qué ocurre y arreglarlo con esperas correctas.
+                </p>
+                <div class="course-hero-actions">
+                    <a class="course-btn primary" href="lab/waits.html">Abrir página de esperas</a>
+                    <a class="course-btn secondary" href="validation_report.txt">Ver reporte validado</a>
+                </div>
+            </div>
+
+            <aside class="course-hero-panel">
+                <div class="panel-chip-row">
+                    <span class="panel-chip">implicit wait</span>
+                    <span class="panel-chip">explicit wait</span>
+                    <span class="panel-chip">ExpectedConditions</span>
+                    <span class="panel-chip">TimeoutException</span>
+                </div>
+                <div class="route-grid">
+                    <article class="route-card">
+                        <h3>Qué debes interiorizar</h3>
+                        <p>No se espera “porque sí”. Se espera a una condición observable: visibilidad, clicabilidad, texto, desaparición o número de ventanas.</p>
+                    </article>
+                </div>
+            </aside>
+        </header>
+
+        <main class="course-main">
+            <section class="section-card">
+                <h2>Esperas implícitas vs explícitas</h2>
+                <div class="two-column-grid">
+                    <article class="note-card">
+                        <h3>Implícitas</h3>
+                        <p>Le dices al driver que espere hasta cierto tiempo cada vez que intente localizar un elemento. Son cómodas, pero menos precisas.</p>
+                    </article>
+                    <article class="note-card">
+                        <h3>Explícitas</h3>
+                        <p>Esperas una condición concreta con <code>WebDriverWait</code> y <code>ExpectedConditions</code>. Son más expresivas y mucho más útiles para explicar fallos reales.</p>
+                    </article>
+                </div>
+                <div class="info-box warning">
+                    <span class="info-box-icon">WARN</span>
+                    <div class="info-box-text"><strong>Consejo práctico:</strong> para aprender y para mantener una suite seria, prioriza esperas explícitas. La implícita puede servir, pero te dice menos sobre qué estabas esperando exactamente.</div>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>El fallo real: buscar antes de que el elemento exista</h2>
+                <p>
+                    Aquí está uno de los ejemplos más importantes del curso. Si pulsas “cargar perfil tardío” y acto seguido buscas el bloque, el DOM todavía no lo ha insertado. Eso no es un “capricho de Selenium”; es causalidad directa.
+                </p>
+                <div class="code-block" data-snippet-file="examples/module4_waits.py" data-snippet-name="example_24_wait_fail_demo">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 24: cómo falla sin esperar</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module4_waits.py" data-snippet-name="example_25_explicit_wait_fix">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 25: cómo se arregla con WebDriverWait</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Más casos de sincronización útiles</h2>
+                <div class="selector-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Condición</th>
+                                <th>Cuándo usarla</th>
+                                <th>Ejemplo del curso</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Elemento visible</td>
+                                <td>Cuando debe aparecer un bloque nuevo</td>
+                                <td>Perfil tardío</td>
+                            </tr>
+                            <tr>
+                                <td>Elemento clickable</td>
+                                <td>Cuando el botón existe, pero aún está bloqueado</td>
+                                <td>Botón desbloqueado a los 2 segundos</td>
+                            </tr>
+                            <tr>
+                                <td>Texto presente</td>
+                                <td>Cuando el nodo existe, pero su contenido cambia después</td>
+                                <td>Estado de pedidos</td>
+                            </tr>
+                            <tr>
+                                <td>Elemento invisible</td>
+                                <td>Cuando quieres esperar a que desaparezca un toast o spinner</td>
+                                <td>Toast temporal</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="code-block" data-snippet-file="examples/module4_waits.py" data-snippet-name="example_26_implicit_wait_example">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 26: espera implícita</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module4_waits.py" data-snippet-name="example_27_wait_until_button_enabled">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 27: esperar a que un botón sea clickable</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module4_waits.py" data-snippet-name="example_28_wait_for_async_results">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 28: esperar resultados asíncronos</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module4_waits.py" data-snippet-name="example_29_wait_for_toast_appear_and_disappear">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 29: esperar aparición y desaparición</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+                <div class="code-block" data-snippet-file="examples/module4_waits.py" data-snippet-name="example_30_wait_for_table_rows">
+                    <div class="code-header"><span class="code-lang">python - Ejemplo 30: esperar filas de tabla</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <div class="code-placeholder">Cargando código...</div><pre><code></code></pre>
+                </div>
+            </section>
+
+            <section class="section-card">
+                <h2>Cierre operativo de la suite</h2>
+                <p>
+                    Aunque ya lo hayas visto en la pestaña de WebDriver, aquí conviene repetirlo porque es donde más scripts temporales se escriben: captura excepciones específicas cuando las conozcas, deja un <code>except Exception as exc</code> genérico al final y usa <code>finally</code> para cerrar el navegador.
+                </p>
+                <div class="info-box info">
+                    <span class="info-box-icon">INFO</span>
+                    <div class="info-box-text"><strong>Patrón recomendado:</strong> primero intentas la acción, luego esperas una condición observable, después validas el resultado y, ocurra lo que ocurra, cierras Firefox.</div>
+                </div>
+                <div class="code-block">
+                    <div class="code-header"><span class="code-lang">bash - Ejecutar toda la batería validada</span><button class="copy-btn" type="button">Copiar</button></div>
+                    <pre><code>conda activate selenium-firefox-313
+cd lucentia/output/learning/selenium-firefox
+python -m http.server 8765
+
+# En otra terminal
+conda activate selenium-firefox-313
+cd lucentia/output/learning/selenium-firefox
+python examples/validate_all.py</code></pre>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer-note">
+            Has visto el flujo completo: instalación, WebDriver, interacciones y sincronización. A partir de aquí ya puedes empezar a escribir ejercicios tuyos sobre esta misma web sin depender de terceros.
+        </footer>
+    </div>
+    <script src="snippets-data.js"></script>
+    <script src="course.js"></script>
+</body>
+</html>
