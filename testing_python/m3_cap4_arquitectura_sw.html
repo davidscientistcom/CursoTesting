@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 4 — Principios de arquitectura SW | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li class="active"><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 3 — Arquitectura · Capítulo 4</div>
+    <h1 class="page-header-title">Principios de arquitectura SW</h1>
+    <p class="page-header-sub">SOLID en Python · código testeable por diseño · inversión de dependencias · por qué la arquitectura importa en testing</p>
+  </div>
+
+  <section>
+    <h2>Por qué la arquitectura y el testing son inseparables</h2>
+    <p>El mayor obstáculo para hacer TDD no es la disciplina — es el diseño. Código con alto acoplamiento, responsabilidades mezcladas y dependencias hard-coded <strong>es literalmente impossible de testear en aislamiento</strong>. No es un problema de willpower; es un problema de arquitectura.</p>
+    <p>Este capítulo no es una introducción a SOLID. Es una lectura de SOLID <em>a través del prisma del testing</em>: cada principio se traduce en una consecuencia directa sobre tu capacidad de escribir tests unitarios rápidos y mantenibles.</p>
+
+    <div class="diagram-block">
+<pre>
+Pregunta de arquitectura         Consecuencia en testing
+───────────────────────────────────────────────────────────────
+¿Cuántas razones tiene esta      Si &gt; 1 → necesitas integración para
+clase para cambiar? (SRP)        testear lógica que podría estar aislada
+
+¿Sus dependencias son            Si son concretas → el test levanta
+abstractas o concretas? (DIP)    infraestructura real (DB, red, disco)
+
+¿La clase tiene estado           Si sí → los tests son ORDER-DEPENDENT
+global o singleton? (OCP)        y se contaminan entre sí
+
+¿La interfaz es mínima?          Si no → el test necesita implementar
+(ISP)                            métodos que no le importan
+</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>S — Single Responsibility Principle</h2>
+    <p>"Una clase, una razón para cambiar." En testing, la traducción es: <strong>una clase con una sola responsabilidad necesita tests mucho más pequeños</strong> y sus dependencias se identifican con claridad.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>srp_violation.py — una clase que mezcla tres responsabilidades</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># MAL: una sola clase que orquesta todo
+# Para testear process_order necesitas: BD real + servidor SMTP + lógica de descuento
+class OrderService:
+    def process_order(self, order_id: int) -> None:
+        # Responsabilidad 1: acceso a datos
+        order = self._db.query(f"SELECT * FROM orders WHERE id={order_id}")
+
+        # Responsabilidad 2: lógica de negocio
+        if order["total"] > 100:
+            order["discount"] = order["total"] * 0.1
+
+        # Responsabilidad 3: efectos secundarios (email)
+        self._smtp.send(
+            to=order["email"],
+            subject="Tu pedido",
+            body=f"Descuento aplicado: {order['discount']}"
+        )
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>srp_correct.py — tres clases, tres responsabilidades, cada una testeable sola</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from typing import Protocol
+from dataclasses import dataclass
+
+
+@dataclass
+class Order:
+    id: int
+    total: float
+    email: str
+    discount: float = 0.0
+
+
+# Responsabilidad 1: acceso a datos — testeable con un Fake o Mock
+class OrderRepository(Protocol):
+    def get(self, order_id: int) -> Order: ...
+    def save(self, order: Order) -> None: ...
+
+
+# Responsabilidad 2: lógica de negocio pura — testeable sin infraestructura
+class DiscountPolicy:
+    def apply(self, order: Order) -> Order:
+        if order.total > 100:
+            return Order(
+                id=order.id,
+                total=order.total,
+                email=order.email,
+                discount=order.total * 0.1,
+            )
+        return order
+
+
+# Responsabilidad 3: notificaciones — testeable con un Mock
+class OrderNotifier(Protocol):
+    def notify(self, order: Order) -> None: ...
+
+
+# Orquestador: combina los tres. Sus tests solo verifican que los llama bien.
+class OrderService:
+    def __init__(
+        self,
+        repo: OrderRepository,
+        policy: DiscountPolicy,
+        notifier: OrderNotifier,
+    ) -> None:
+        self._repo = repo
+        self._policy = policy
+        self._notifier = notifier
+
+    def process_order(self, order_id: int) -> None:
+        order = self._repo.get(order_id)
+        order = self._policy.apply(order)
+        self._repo.save(order)
+        self._notifier.notify(order)
+
+
+# Test de DiscountPolicy: CERO infraestructura, instancia directa
+def test_descuento_aplicado_para_pedidos_altos():
+    policy = DiscountPolicy()
+    order = Order(id=1, total=200.0, email="a@ejemplo.com")
+    result = policy.apply(order)
+    assert result.discount == 20.0
+
+
+def test_sin_descuento_para_pedidos_bajos():
+    policy = DiscountPolicy()
+    order = Order(id=2, total=50.0, email="b@ejemplo.com")
+    result = policy.apply(order)
+    assert result.discount == 0.0
+</code></pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      <code>DiscountPolicy</code> se puede testear con <code>pytest</code> puro, sin fixtures, sin mocks, sin base de datos. Es una función disfrazada de clase — exactamente lo que buscamos para la lógica de negocio.
+    </div>
+  </section>
+
+  <section>
+    <h2>O — Open/Closed Principle</h2>
+    <p>Abierto a extensión, cerrado a modificación. En testing: si para añadir un nuevo comportamiento tienes que modificar una clase existente <em>y</em> sus tests existentes, el diseño viola OCP.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>ocp_example.py — extensión sin tocar tests existentes</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from typing import Protocol
+from dataclasses import dataclass
+
+
+@dataclass
+class Order:
+    total: float
+    is_vip: bool = False
+    is_employee: bool = False
+
+
+class DiscountRule(Protocol):
+    def applies(self, order: Order) -> bool: ...
+    def calculate(self, order: Order) -> float: ...
+
+
+class VIPDiscount:
+    def applies(self, order: Order) -> bool:
+        return order.is_vip
+
+    def calculate(self, order: Order) -> float:
+        return order.total * 0.20
+
+
+class EmployeeDiscount:
+    def applies(self, order: Order) -> bool:
+        return order.is_employee
+
+    def calculate(self, order: Order) -> float:
+        return order.total * 0.30
+
+
+class VolumeDiscount:
+    """Nuevo descuento añadido sin modificar DiscountEngine ni sus tests."""
+    def applies(self, order: Order) -> bool:
+        return order.total > 500
+
+    def calculate(self, order: Order) -> float:
+        return order.total * 0.15
+
+
+class DiscountEngine:
+    def __init__(self, rules: list[DiscountRule]) -> None:
+        self._rules = rules
+
+    def compute(self, order: Order) -> float:
+        applicable = [r for r in self._rules if r.applies(order)]
+        if not applicable:
+            return 0.0
+        # Aplica el descuento más alto
+        return max(r.calculate(order) for r in applicable)
+
+
+# Tests — no cambian cuando añadimos VolumeDiscount
+def test_vip_descuento():
+    engine = DiscountEngine(rules=[VIPDiscount()])
+    order = Order(total=100.0, is_vip=True)
+    assert engine.compute(order) == 20.0
+
+
+def test_sin_reglas_no_hay_descuento():
+    engine = DiscountEngine(rules=[])
+    order = Order(total=400.0)
+    assert engine.compute(order) == 0.0
+
+
+def test_volume_discount_nuevo_sin_romper_existentes():
+    engine = DiscountEngine(rules=[VIPDiscount(), VolumeDiscount()])
+    order = Order(total=600.0)  # no es VIP, pero supera 500
+    assert engine.compute(order) == 90.0  # 600 * 0.15
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>D — Dependency Inversion Principle (el más importante para testing)</h2>
+    <p>Las abstracciones no deben depender de los detalles — los detalles dependen de las abstracciones. En Python esto se implementa con <code>Protocol</code> o <code>ABC</code>. <strong>DIP es la clave que habilita el testing unitario</strong>: si <code>ServicioAuth</code> depende de <code>RepositorioUsuarios</code> (abstracción), puedo inyectar un Mock en el test. Si depende de <code>PostgreSQLRepositorioUsuarios</code> (detalle), no.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>dip_completo.py — Protocol como contrato, inyección en constructor</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from typing import Protocol
+from unittest.mock import MagicMock
+import pytest
+
+
+# Abstracción — el contrato. ServicioNotificaciones no sabe nada de SMTP/Slack/etc.
+class NotificadorProtocol(Protocol):
+    def enviar(self, destinatario: str, mensaje: str) -> None: ...
+
+
+# Implementación de producción — depende de la abstracción
+class ServicioAlertas:
+    def __init__(self, notificador: NotificadorProtocol) -> None:
+        self._notificador = notificador  # inyectado, no instanciado aquí
+
+    def alerta_critica(self, sistema: str, error: str) -> None:
+        mensaje = f"[CRITICO] {sistema}: {error}"
+        self._notificador.enviar("on-call@empresa.com", mensaje)
+        self._notificador.enviar("manager@empresa.com", mensaje)
+
+
+# Implementación de producción del notificador (en producción se usa esta)
+class NotificadorSMTP:
+    def enviar(self, destinatario: str, mensaje: str) -> None:
+        # ... código SMTP real ...
+        pass
+
+
+# ── TESTS — no necesitan SMTP ────────────────────────────────────────
+def test_alerta_critica_notifica_a_dos_destinatarios():
+    mock_notificador = MagicMock(spec=NotificadorProtocol)
+    servicio = ServicioAlertas(notificador=mock_notificador)
+
+    servicio.alerta_critica("PaymentGateway", "timeout después de 30s")
+
+    assert mock_notificador.enviar.call_count == 2
+
+
+def test_alerta_critica_incluye_nombre_sistema_en_mensaje():
+    mock_notificador = MagicMock(spec=NotificadorProtocol)
+    servicio = ServicioAlertas(notificador=mock_notificador)
+
+    servicio.alerta_critica("InventoryService", "DB connection refused")
+
+    calls = mock_notificador.enviar.call_args_list
+    for call in calls:
+        # El primer argumento posicional del mensaje debe contener el sistema
+        mensaje = call[0][1]  # (destinatario, mensaje) → [1] es mensaje
+        assert "InventoryService" in mensaje
+
+
+# Fake para tests de integración — sin servidor real
+class FakeNotificador:
+    def __init__(self):
+        self.enviados: list[tuple[str, str]] = []
+
+    def enviar(self, destinatario: str, mensaje: str) -> None:
+        self.enviados.append((destinatario, mensaje))
+
+
+def test_fake_captura_mensajes_para_tests_de_integracion():
+    fake = FakeNotificador()
+    servicio = ServicioAlertas(notificador=fake)
+
+    servicio.alerta_critica("AuthService", "JWT secret rotado sin aviso")
+
+    assert len(fake.enviados) == 2
+    assert any("on-call" in dest for dest, _ in fake.enviados)
+</code></pre>
+    </div>
+
+    <div class="info-box info">
+      <span class="info-box-label">INFO</span>
+      En Python, <code>Protocol</code> (PEP 544, Python 3.8+) permite <em>structural subtyping</em>: cualquier clase que implemente los métodos del Protocol es válida, sin herencia explícita. Esto es más flexible que <code>ABC</code> y encaja perfectamente con la filosofía de duck typing de Python.
+    </div>
+  </section>
+
+  <section>
+    <h2>I — Interface Segregation Principle</h2>
+    <p>"Muchas interfaces específicas son mejores que una interfaz general." Para el testing: un Protocol con 15 métodos obliga al Mock a implementar o ignorar 14 métodos que no importan al test. Interfaces pequeñas producen mocks pequeños y tests focalizados.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>isp_example.py — interfaces pequeñas vs interfaz monolítica</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from typing import Protocol
+
+
+# MAL: un Protocol enorme que obliga a implementar todo para testear una cosa
+class RepositorioMonolitico(Protocol):
+    def get(self, id: int): ...
+    def save(self, entity): ...
+    def delete(self, id: int): ...
+    def find_all(self): ...
+    def find_by_email(self, email: str): ...
+    def count(self) -> int: ...
+    def exists(self, id: int) -> bool: ...
+    def bulk_insert(self, entities: list): ...
+
+
+# BIEN: interfaces pequeñas, cada una con su responsabilidad
+class Readable(Protocol):
+    def get(self, id: int): ...
+    def find_all(self) -> list: ...
+
+
+class Writable(Protocol):
+    def save(self, entity) -> None: ...
+    def delete(self, id: int) -> None: ...
+
+
+class Queryable(Protocol):
+    def find_by_email(self, email: str): ...
+    def exists(self, id: int) -> bool: ...
+
+
+# ServicioConsulta solo necesita leer — su test solo mockea los 2 métodos que usa
+class ServicioConsulta:
+    def __init__(self, repo: Readable) -> None:
+        self._repo = repo
+
+    def listar_activos(self) -> list:
+        return [item for item in self._repo.find_all() if item.get("activo")]
+
+
+# El Mock solo necesita implementar Readable — no delete, no bulk_insert, etc.
+from unittest.mock import MagicMock
+
+def test_listar_activos_filtra_inactivos():
+    mock_repo = MagicMock(spec=Readable)
+    mock_repo.find_all.return_value = [
+        {"id": 1, "activo": True,  "nombre": "Ana"},
+        {"id": 2, "activo": False, "nombre": "Bob"},
+        {"id": 3, "activo": True,  "nombre": "Carlos"},
+    ]
+    servicio = ServicioConsulta(mock_repo)
+    resultado = servicio.listar_activos()
+    assert len(resultado) == 2
+    assert all(r["activo"] for r in resultado)
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>L — Liskov Substitution Principle</h2>
+    <p>Si <code>B</code> es subtipo de <code>A</code>, cualquier código que funcione con <code>A</code> debe funcionar con <code>B</code> sin cambios. Para testing: <strong>la misma suite de tests debe pasar para todas las implementaciones del mismo Protocol</strong>. Eso garantiza que el Mock del test y la implementación real son intercambiables.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>lsp_test_suite.py — suite de tests reutilizable para cualquier implementación</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from typing import Protocol
+
+
+class CacheProtocol(Protocol):
+    def get(self, key: str) -> str | None: ...
+    def set(self, key: str, value: str) -> None: ...
+    def delete(self, key: str) -> None: ...
+
+
+# Implementación 1: en memoria (para tests y desarrollo)
+class InMemoryCache:
+    def __init__(self):
+        self._store: dict[str, str] = {}
+
+    def get(self, key: str) -> str | None:
+        return self._store.get(key)
+
+    def set(self, key: str, value: str) -> None:
+        self._store[key] = value
+
+    def delete(self, key: str) -> None:
+        self._store.pop(key, None)
+
+
+# Implementación 2: Redis (en producción, aquí simplificado)
+class FakeRedisCache:
+    def __init__(self):
+        self._store: dict[str, str] = {}
+
+    def get(self, key: str) -> str | None:
+        return self._store.get(key)
+
+    def set(self, key: str, value: str) -> None:
+        self._store[key] = value
+
+    def delete(self, key: str) -> None:
+        self._store.pop(key, None)
+
+
+# Suite de tests parametrizada — debe pasar para CUALQUIER implementación conforme
+@pytest.fixture(params=["memory", "redis"])
+def cache(request):
+    if request.param == "memory":
+        return InMemoryCache()
+    else:
+        return FakeRedisCache()
+
+
+def test_get_devuelve_none_si_clave_no_existe(cache):
+    assert cache.get("clave_inexistente") is None
+
+
+def test_set_y_get_recuperan_el_mismo_valor(cache):
+    cache.set("usuario", "ana")
+    assert cache.get("usuario") == "ana"
+
+
+def test_delete_elimina_la_clave(cache):
+    cache.set("token", "abc123")
+    cache.delete("token")
+    assert cache.get("token") is None
+
+
+def test_delete_clave_inexistente_no_lanza_excepcion(cache):
+    cache.delete("no_existe")  # no debe lanzar ninguna excepción
+
+
+# Si una nueva implementación (RedisCache real, DiskCache, etc.) falla estos tests,
+# viola LSP y no es un sustituto válido.
+</code></pre>
+    </div>
+
+    <div class="info-box warn">
+      <span class="info-box-label">WARN</span>
+      El antipatrón clásico de LSP en Python es sobreescribir un método con una firma diferente o hacerlo lanzar <code>NotImplementedError</code>. Si tu implementación hace eso, el código que usa el Protocol falla en producción pero no en los tests del Mock — exactamente el tipo de bug más difícil de detectar.
+    </div>
+  </section>
+
+  <section>
+    <h2>Arquitectura testeable: el patrón hexagonal simplificado</h2>
+    <p>No necesitas implementar Hexagonal Architecture completa para obtener sus beneficios de testabilidad. La versión pragmática tiene tres reglas:</p>
+
+    <div class="diagram-block">
+<pre>
+  ┌─────────────────────────────────────────────────────────────┐
+  │                                                             │
+  │   Capa de Puertos (Protocols / Interfaces)                  │
+  │   → Define QUÉ necesita el dominio (repositorios,           │
+  │     notificadores, servicios externos)                      │
+  │                                                             │
+  │   Capa de Dominio (lógica pura)                             │
+  │   → NO importa nada de infraestructura                      │
+  │   → Solo conoce los Protocols, nunca las implementaciones   │
+  │   → 100% testeable con pytest puro, sin mocks complejos     │
+  │                                                             │
+  │   Capa de Adaptadores (implementaciones concretas)          │
+  │   → PostgreSQL, Redis, SMTP, S3, etc.                       │
+  │   → Tests de integración con infraestructura real/fake      │
+  │                                                             │
+  └─────────────────────────────────────────────────────────────┘
+
+  Regla de dependencia: las flechas apuntan HACIA el dominio, nunca fuera.
+
+  Domain ---uses--→  RepositorioUsuarios (Protocol)
+                              ↑
+                              | implements
+                     PostgreSQLRepositorioUsuarios (Adapter)
+
+  En tests: el Mock implementa el Protocol → el dominio no sabe la diferencia.
+</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>arquitectura_testeable.py — estructura con tres capas en un solo fichero didáctico</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>"""
+Ejemplo: sistema de gestión de inventario con arquitectura testeable.
+Tres capas en un fichero para que sea fácil de leer.
+En producción estarían en módulos separados.
+"""
+from typing import Protocol
+from dataclasses import dataclass, field
+
+
+# ══ CAPA DE PUERTOS (interfaces/abstracciones) ═══════════════════════════════
+
+@dataclass
+class Producto:
+    id: str
+    nombre: str
+    stock: int
+
+
+class InventarioRepo(Protocol):
+    def get(self, producto_id: str) -> Producto | None: ...
+    def save(self, producto: Producto) -> None: ...
+
+
+class EventoPublisher(Protocol):
+    def publicar(self, evento: str, datos: dict) -> None: ...
+
+
+# ══ CAPA DE DOMINIO (lógica pura, sin infraestructura) ═══════════════════════
+
+class StockInsuficiente(Exception):
+    pass
+
+
+class GestorInventario:
+    """Lógica de negocio pura. Solo conoce Protocols."""
+
+    def __init__(self, repo: InventarioRepo, publisher: EventoPublisher) -> None:
+        self._repo = repo
+        self._publisher = publisher
+
+    def reservar(self, producto_id: str, cantidad: int) -> None:
+        producto = self._repo.get(producto_id)
+        if producto is None:
+            raise ValueError(f"Producto {producto_id} no encontrado")
+        if producto.stock < cantidad:
+            raise StockInsuficiente(
+                f"Stock insuficiente: {producto.stock} < {cantidad}"
+            )
+        producto = Producto(
+            id=producto.id,
+            nombre=producto.nombre,
+            stock=producto.stock - cantidad,
+        )
+        self._repo.save(producto)
+        self._publisher.publicar(
+            "stock_reservado",
+            {"producto_id": producto_id, "cantidad": cantidad, "stock_restante": producto.stock},
+        )
+
+
+# ══ CAPA DE ADAPTADORES (en producción) ══════════════════════════════════════
+
+class FakeInventarioRepo:
+    """Adaptador falso para tests. Implementa el Protocol con lógica real simplificada."""
+    def __init__(self, productos: dict[str, Producto] | None = None):
+        self._store: dict[str, Producto] = productos or {}
+
+    def get(self, producto_id: str) -> Producto | None:
+        return self._store.get(producto_id)
+
+    def save(self, producto: Producto) -> None:
+        self._store[producto.id] = producto
+
+
+class FakePublisher:
+    def __init__(self):
+        self.eventos: list[tuple[str, dict]] = []
+
+    def publicar(self, evento: str, datos: dict) -> None:
+        self.eventos.append((evento, datos))
+
+
+# ══ TESTS del dominio — cero infraestructura externa ═════════════════════════
+
+import pytest
+
+def test_reservar_reduce_stock_correctamente():
+    repo = FakeInventarioRepo({
+        "P001": Producto(id="P001", nombre="Teclado", stock=10)
+    })
+    publisher = FakePublisher()
+    gestor = GestorInventario(repo, publisher)
+
+    gestor.reservar("P001", 3)
+
+    producto_actualizado = repo.get("P001")
+    assert producto_actualizado.stock == 7
+
+
+def test_reservar_publica_evento_con_datos_correctos():
+    repo = FakeInventarioRepo({
+        "P001": Producto(id="P001", nombre="Teclado", stock=10)
+    })
+    publisher = FakePublisher()
+    gestor = GestorInventario(repo, publisher)
+
+    gestor.reservar("P001", 3)
+
+    assert len(publisher.eventos) == 1
+    evento, datos = publisher.eventos[0]
+    assert evento == "stock_reservado"
+    assert datos["cantidad"] == 3
+    assert datos["stock_restante"] == 7
+
+
+def test_reservar_lanza_excepcion_si_stock_insuficiente():
+    repo = FakeInventarioRepo({
+        "P001": Producto(id="P001", nombre="Teclado", stock=2)
+    })
+    publisher = FakePublisher()
+    gestor = GestorInventario(repo, publisher)
+
+    with pytest.raises(StockInsuficiente):
+        gestor.reservar("P001", 5)
+
+
+def test_no_se_publica_evento_si_stock_insuficiente():
+    """Si falla la reserva, no debe generarse ningún evento."""
+    repo = FakeInventarioRepo({
+        "P001": Producto(id="P001", nombre="Teclado", stock=1)
+    })
+    publisher = FakePublisher()
+    gestor = GestorInventario(repo, publisher)
+
+    try:
+        gestor.reservar("P001", 5)
+    except StockInsuficiente:
+        pass
+
+    assert len(publisher.eventos) == 0
+</code></pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Los tests del dominio son <strong>instantáneos, deterministas y expresivos</strong>. Prueban comportamiento de negocio real (reservar stock, publicar evento, manejar excepciones) sin levantar ninguna infraestructura. Esto es el dividendo de una buena arquitectura: el testing se vuelve natural, no una lucha.
+    </div>
+  </section>
+
+  <section>
+    <h2>Señales de alerta: código que resiste el testing</h2>
+    <p>Cuando sientes que escribir un test es "muy difícil", normalmente hay una señal de diseño detrás:</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th>Síntoma en el test</th><th>Causa arquitectónica probable</th><th>Solución</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>El test necesita levantar toda la app para probar una función pequeña</td>
+          <td>God object — una clase con demasiado acoplamiento</td>
+          <td>SRP: extrae la lógica pura a una clase sin dependencias</td>
+        </tr>
+        <tr>
+          <td>No puedo inyectar un mock — la dependencia está instanciada dentro del método</td>
+          <td>Viola DIP — dependencia concreta hard-coded</td>
+          <td>Inyección en constructor con Protocol</td>
+        </tr>
+        <tr>
+          <td>Los tests se contaminan entre sí — el orden importa</td>
+          <td>Estado global / singleton / variables de módulo mutables</td>
+          <td>Eliminar estado global; usar fixtures con scope correcto</td>
+        </tr>
+        <tr>
+          <td>Para mockear necesito implementar 10 métodos que no uso</td>
+          <td>Viola ISP — Protocol demasiado grande</td>
+          <td>Dividir el Protocol en interfaces pequeñas y focalizadas</td>
+        </tr>
+        <tr>
+          <td>El test rompe cuando cambio un detalle de implementación</td>
+          <td>Test acopla a implementación, no al contrato</td>
+          <td>Cambiar a caja negra: testear comportamiento observable</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box info">
+      <span class="info-box-label">INFO</span>
+      Este capítulo es un adelanto del curso de Arquitectura SW que profundiza en patrones (Repository, Factory, Strategy, Observer) y arquitecturas (Hexagonal, Clean, Event-Driven) aplicados a Python con ejemplos de microservicios y pipelines de datos. Si SOLID ya te resulta natural, ese curso es el siguiente paso.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m2_cap3_tdd.html" class="chapter-nav-btn">← Cap 3 · TDD</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m4_cap5_pytest.html" class="chapter-nav-btn">Cap 5 · pytest →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

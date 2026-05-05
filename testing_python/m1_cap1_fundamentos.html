@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 1 — Fundamentos y vocabulario | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li class="active"><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 1 — Por qué testear · Capítulo 1</div>
+    <h1 class="page-header-title">Fundamentos y vocabulario</h1>
+    <p class="page-header-sub">Unit · Integration · E2E · caja negra · caja blanca · stub · mock · spy · fake</p>
+  </div>
+
+  <section>
+    <h2>Por qué existe este vocabulario — y por qué importa</h2>
+    <p>Antes de escribir un solo test hay que hablar el mismo idioma. El vocabulario de testing no es burocracia: define <strong>qué estás probando</strong>, <strong>con qué nivel de aislamiento</strong> y <strong>qué tipo de evidencia</strong> te da sobre el comportamiento del sistema.</p>
+    <p>Un equipo que confunde "unit test" con "test que llama a la base de datos" tiene dos problemas: el primero es técnico, el segundo es de comunicación. Ambos generan bugs que llegan a producción.</p>
+    <div class="info-box info">
+      <span class="info-box-label">INFO</span>
+      Este capítulo es deliberadamente conceptual. No hay herramientas todavía. El objetivo es que cuando llegues al Cap 5 (pytest) y Cap 9 (mocks) sepas exactamente qué estás configurando y por qué, en lugar de copiar comandos sin entenderlos.
+    </div>
+  </section>
+
+  <section>
+    <h2>La pirámide de testing — niveles y su razón de ser</h2>
+    <p>La pirámide de testing describe cuántos tests de cada tipo deberías tener y por qué. No es una regla sagrada, pero sí una heurística útil que ha sobrevivido décadas de industria.</p>
+
+    <div class="diagram-block">
+<pre>
+              /▲\
+             / E2E \         ← pocos, lentos, frágiles, mucho valor de confianza
+            /───────\
+           /Integration\     ← moderados, dependen de sistema externo real o simulado
+          /─────────────\
+         /  Unit Tests   \   ← muchos, rápidos, aislados, feedback en milisegundos
+        /─────────────────\
+
+Velocidad de feedback:   Unit &lt; 1ms | Integration ~100ms-5s | E2E segundos-minutos
+Coste de mantenimiento:  Unit bajo  | Integration medio      | E2E alto
+Aislamiento:             Unit total | Integration parcial     | E2E ninguno
+</pre>
+    </div>
+
+    <h3>Tests unitarios</h3>
+    <p>Prueban <strong>una sola unidad de comportamiento</strong> en completo aislamiento. "Unidad" no significa "función" necesariamente — significa el comportamiento más pequeño que tiene sentido verificar por sí solo. No hablan con bases de datos, no hacen llamadas de red, no tocan el sistema de ficheros. Todo lo externo está simulado.</p>
+
+    <h3>Tests de integración</h3>
+    <p>Prueban que <strong>dos o más componentes funcionan correctamente juntos</strong>. Pueden involucrar una base de datos real (o de test), un broker de mensajes, una API externa. Son más lentos y más frágiles que los unitarios, pero validan contratos entre componentes.</p>
+
+    <h3>Tests End-to-End (E2E)</h3>
+    <p>Prueban el <strong>flujo completo desde la perspectiva del usuario o del sistema cliente</strong>. En una API REST: lanzar una petición HTTP real y verificar la respuesta completa. En una webapp: navegar con un navegador real. Son los más caros de mantener pero los que más confianza dan sobre el sistema completo.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th>Nivel</th><th>Qué prueba</th><th>Velocidad</th><th>Cuántos tener</th><th>Cuándo fallan</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Unit</td>
+          <td>Lógica de negocio pura, algoritmos, transformaciones</td>
+          <td>&lt; 1 ms</td>
+          <td>~70% del total</td>
+          <td>Regressions en lógica interna</td>
+        </tr>
+        <tr>
+          <td>Integration</td>
+          <td>Contratos entre capas, ORM, repositorios, adaptadores</td>
+          <td>100 ms — 5 s</td>
+          <td>~20% del total</td>
+          <td>Incompatibilidades entre componentes</td>
+        </tr>
+        <tr>
+          <td>E2E</td>
+          <td>Flujos críticos de negocio completos</td>
+          <td>segundos</td>
+          <td>~10% del total</td>
+          <td>Bugs de integración end-to-end, regresiones de UI</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box warn">
+      <span class="info-box-label">WARN</span>
+      Un antipatrón habitual: invertir la pirámide. Muchos E2E, pocos unitarios. El resultado es una suite que tarda 20 minutos en ejecutarse, falla aleatoriamente por timeouts de red o estado de la base de datos, y da feedback tan tarde que el desarrollador ya cambió de contexto. <strong>El ciclo de feedback lento destruye la disciplina de testing.</strong>
+    </div>
+  </section>
+
+  <section>
+    <h2>Caja negra vs caja blanca</h2>
+    <p>Son dos perspectivas para diseñar qué casos de prueba escribir. No son excluyentes — un buen suite usa ambas en distintas proporciones según el contexto.</p>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <h4>Caja negra</h4>
+        <p>El tester <strong>no conoce ni le importa</strong> la implementación interna. Solo se fija en las entradas y las salidas esperadas. Prueba el <em>contrato</em> de la función/módulo. Si la implementación cambia pero el contrato se mantiene, el test no cambia.</p>
+      </div>
+      <div class="concept-card">
+        <h4>Caja blanca</h4>
+        <p>El tester <strong>conoce la implementación</strong> y diseña los casos para cubrir cada rama, cada condición, cada camino del código. Maximiza la cobertura de líneas y ramas. Íntimamente ligada a la complejidad ciclomática (Cap 2).</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>perspectiva_caja_negra.py — testear el contrato, no la implementación</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>def calcular_descuento(precio: float, nivel_cliente: str) -> float:
+    """
+    Aplica descuento según nivel: 'vip' 20%, 'premium' 10%, resto 0%.
+    """
+    if nivel_cliente == "vip":
+        return precio * 0.80
+    elif nivel_cliente == "premium":
+        return precio * 0.90
+    return precio
+
+
+# CAJA NEGRA: los tests no saben que hay un if/elif dentro.
+# Solo verifican la promesa de la función.
+def test_descuento_vip():
+    assert calcular_descuento(100.0, "vip") == 80.0
+
+def test_descuento_premium():
+    assert calcular_descuento(100.0, "premium") == 90.0
+
+def test_cliente_sin_descuento():
+    assert calcular_descuento(100.0, "basico") == 100.0
+
+def test_precio_cero_vip():
+    assert calcular_descuento(0.0, "vip") == 0.0
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>perspectiva_caja_blanca.py — diseñar casos para cubrir cada rama</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># La misma función, pero esta vez diseñamos los tests
+# mirando el código fuente para cubrir cada rama:
+#
+# Rama 1: nivel_cliente == "vip"     → precio * 0.80
+# Rama 2: nivel_cliente == "premium" → precio * 0.90
+# Rama 3: else                        → precio sin cambio
+# Caso borde: precio negativo (¿está permitido?)
+# Caso borde: nivel_cliente vacío ""
+# Caso borde: nivel_cliente en mayúsculas "VIP"
+
+def test_rama_vip():
+    assert calcular_descuento(200.0, "vip") == 160.0
+
+def test_rama_premium():
+    assert calcular_descuento(200.0, "premium") == 180.0
+
+def test_rama_else():
+    assert calcular_descuento(200.0, "normal") == 200.0
+
+def test_nivel_mayusculas_no_reconocido():
+    # "VIP" != "vip" → caerá en else, precio sin descuento
+    # Puede ser un bug o un comportamiento esperado.
+    # Documentarlo con el test es valioso.
+    assert calcular_descuento(100.0, "VIP") == 100.0
+
+def test_precio_negativo():
+    # La función no valida. ¿Debería? El test revela el gap.
+    assert calcular_descuento(-50.0, "vip") == -40.0
+</code></pre>
+    </div>
+
+    <div class="info-box info">
+      <span class="info-box-label">INFO</span>
+      En la práctica, los tests de caja negra son los más mantenibles: si refactorizas la implementación sin cambiar el contrato, no tienes que tocar los tests. La caja blanca es útil para encontrar ramas no cubiertas y casos borde que el diseñador del contrato no documentó. Usa caja negra como base, caja blanca para completar.
+    </div>
+  </section>
+
+  <section>
+    <h2>Vocabulario de dobles de test — Mock, Stub, Spy, Fake</h2>
+    <p>Este es el vocabulario que más confusión genera. La terminología viene de Gerard Meszaros (<em>xUnit Test Patterns</em>, 2007) y es la que usa la industria. En Python, la librería <code>unittest.mock</code> los unifica bajo el nombre "mock", lo que añade más confusión.</p>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <h4>Stub</h4>
+        <p>Devuelve respuestas predefinidas. No verifica nada. Su trabajo es <em>proporcionar datos</em> a la unidad bajo test para que pueda ejecutar su lógica. Ejemplo: una clase que siempre devuelve <code>True</code> en <code>usuario_existe()</code>.</p>
+      </div>
+      <div class="concept-card">
+        <h4>Mock</h4>
+        <p>Un objeto que <em>verifica que fue llamado</em> correctamente. Tiene expectativas: "este método debe ser llamado con estos argumentos, N veces". Si las expectativas no se cumplen, el test falla. Su trabajo es verificar <em>comportamiento</em>.</p>
+      </div>
+      <div class="concept-card">
+        <h4>Spy</h4>
+        <p>Como el Mock pero <em>no bloquea</em> la implementación real. Deja que el código real se ejecute y además registra las llamadas para que puedas verificarlas <em>después</em>. Útil cuando necesitas el comportamiento real pero también quieres observarlo.</p>
+      </div>
+      <div class="concept-card">
+        <h4>Fake</h4>
+        <p>Una implementación funcional simplificada. No es un objeto vacío — tiene lógica real, pero más sencilla. Ejemplo: una base de datos en memoria en lugar de PostgreSQL. Los Fakes se usan en tests de integración, no en unitarios.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>dobles_de_test.py — los cuatro tipos en código Python</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from unittest.mock import MagicMock, patch
+from typing import Protocol
+
+
+class RepositorioUsuarios(Protocol):
+    def existe(self, user_id: int) -> bool: ...
+    def guardar(self, user_id: int, datos: dict) -> None: ...
+
+
+class ServicioRegistro:
+    def __init__(self, repo: RepositorioUsuarios) -> None:
+        self._repo = repo
+
+    def registrar(self, user_id: int, datos: dict) -> str:
+        if self._repo.existe(user_id):
+            return "ya_existe"
+        self._repo.guardar(user_id, datos)
+        return "creado"
+
+
+# ── STUB: proporciona dato fijo, no verifica llamadas ─────────
+class StubRepositorioVacio:
+    def existe(self, user_id: int) -> bool:
+        return False  # siempre dice que no existe
+
+    def guardar(self, user_id: int, datos: dict) -> None:
+        pass  # no hace nada con los datos
+
+def test_registro_usuario_nuevo_con_stub():
+    stub = StubRepositorioVacio()
+    servicio = ServicioRegistro(stub)
+    resultado = servicio.registrar(1, {"nombre": "Ana"})
+    assert resultado == "creado"
+
+
+# ── MOCK: verifica que se llamó con los argumentos correctos ─
+def test_guardar_es_llamado_con_datos_correctos():
+    mock_repo = MagicMock(spec=RepositorioUsuarios)
+    mock_repo.existe.return_value = False  # stub behavior
+    servicio = ServicioRegistro(mock_repo)
+
+    servicio.registrar(42, {"nombre": "Ana"})
+
+    # Verificación de comportamiento: ¿se llamó guardar con los datos correctos?
+    mock_repo.guardar.assert_called_once_with(42, {"nombre": "Ana"})
+
+
+# ── FAKE: implementación real simplificada en memoria ─────────
+class FakeRepositorio:
+    def __init__(self):
+        self._datos: dict[int, dict] = {}
+
+    def existe(self, user_id: int) -> bool:
+        return user_id in self._datos
+
+    def guardar(self, user_id: int, datos: dict) -> None:
+        self._datos[user_id] = datos
+
+def test_no_permite_registro_duplicado_con_fake():
+    fake = FakeRepositorio()
+    servicio = ServicioRegistro(fake)
+
+    servicio.registrar(1, {"nombre": "Ana"})
+    resultado = servicio.registrar(1, {"nombre": "Ana duplicada"})
+
+    assert resultado == "ya_existe"
+    assert fake._datos[1]["nombre"] == "Ana"  # el original no fue sobreescrito
+</code></pre>
+    </div>
+
+    <div class="info-box fail">
+      <span class="info-box-label">FAIL</span>
+      <strong>Confusión habitual:</strong> usar un Mock cuando necesitas un Stub, y vice versa. Si usas un Mock para proporcionar datos (rol de Stub), acabas con tests que verifican detalles de implementación que no importan (cuántas veces se llamó <code>existe()</code>). Resultado: tests frágiles que se rompen con refactors que no cambian el comportamiento. Regla: <strong>Stub para estado, Mock para comportamiento</strong>.
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Resumen ejecutivo del vocabulario: <strong>Stub</strong> = "te doy el dato que necesitas". <strong>Mock</strong> = "quiero comprobar que me llamaste bien". <strong>Spy</strong> = "te dejo hacer lo tuyo pero tomo nota". <strong>Fake</strong> = "soy una versión simplificada que funciona de verdad". En Python, <code>MagicMock</code> puede hacer los cuatro roles — el peligro es no saber cuál estás usando.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="index.html" class="chapter-nav-btn">← Índice</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m1_cap2_codigo_que_duele.html" class="chapter-nav-btn">Cap 2 · Código que duele →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

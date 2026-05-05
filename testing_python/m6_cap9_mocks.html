@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 9 — Mocks y desacoplamiento | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li class="active"><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 6 — Mocks · Capítulo 9</div>
+    <h1 class="page-header-title">Mocks y desacoplamiento</h1>
+    <p class="page-header-sub">MagicMock · patch · spec · side_effect · assert_called · Mock vs Stub vs Spy vs Fake · errores comunes</p>
+  </div>
+
+  <section>
+    <h2>MagicMock — anatomía del objeto mock en Python</h2>
+    <p><code>MagicMock</code> es un objeto que acepta cualquier llamada, atributo o método y devuelve otro <code>MagicMock</code>. El peligro es que es <em>demasiado tolerante</em>: si escribes mal el nombre de un método, no falla — crea silenciosamente un nuevo atributo. Por eso <strong>siempre usa <code>spec=</code></strong>.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>magicmock_anatomia.py — cómo funciona y por qué usar spec</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from unittest.mock import MagicMock
+from typing import Protocol
+
+
+class EmailService(Protocol):
+    def enviar(self, to: str, subject: str, body: str) -> bool: ...
+    def bandeja_salida(self) -> list[str]: ...
+
+
+# ── Sin spec — demasiado tolerante ──────────────────────────────
+mock_sin_spec = MagicMock()
+mock_sin_spec.enviar("a@b.com", "Hola", "Cuerpo")  # OK
+mock_sin_spec.metodo_que_no_existe()  # también OK — BUG silencioso
+mock_sin_spec.enviaar("typo")  # typo en el método — también OK — BUG
+
+# ── Con spec — ajusta el mock a la interfaz real ─────────────────
+mock_con_spec = MagicMock(spec=EmailService)
+mock_con_spec.enviar("a@b.com", "Hola", "Cuerpo")  # OK
+try:
+    mock_con_spec.metodo_que_no_existe()  # AttributeError — detecta el bug
+except AttributeError as e:
+    print(f"Capturado: {e}")
+
+
+# ── return_value — qué devuelve el mock cuando se llama ──────────
+mock_con_spec.enviar.return_value = True
+resultado = mock_con_spec.enviar("a@b.com", "Hola", "Cuerpo")
+assert resultado is True
+
+
+# ── Verificaciones después de la llamada ─────────────────────────
+mock_con_spec.enviar.assert_called_once()
+mock_con_spec.enviar.assert_called_once_with("a@b.com", "Hola", "Cuerpo")
+assert mock_con_spec.enviar.call_count == 1
+
+# Verificar llamadas individuales
+llamadas = mock_con_spec.enviar.call_args_list
+primera_llamada = llamadas[0]
+args, kwargs = primera_llamada
+assert args[0] == "a@b.com"
+
+
+# ── call_args — acceder a la llamada más reciente ─────────────────
+mock_con_spec.bandeja_salida.return_value = ["msg1", "msg2"]
+mock_con_spec.bandeja_salida()
+assert mock_con_spec.bandeja_salida.call_args == ()  # llamada sin argumentos
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>side_effect — simular errores y comportamientos dinámicos</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>side_effect.py — simular excepciones, secuencias y lógica dinámica</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from unittest.mock import MagicMock
+
+
+class APIExterna:
+    def get_precio(self, producto_id: str) -> float: ...
+
+
+class GestorPrecios:
+    def __init__(self, api: APIExterna) -> None:
+        self._api = api
+
+    def precio_con_margen(self, producto_id: str, margen: float = 0.2) -> float:
+        precio_base = self._api.get_precio(producto_id)
+        return precio_base * (1 + margen)
+
+
+# ── side_effect con excepción — simular fallo de API ─────────────
+def test_precio_con_margen_propaga_excepcion_de_api():
+    mock_api = MagicMock(spec=APIExterna)
+    mock_api.get_precio.side_effect = ConnectionError("API no disponible")
+
+    gestor = GestorPrecios(api=mock_api)
+
+    with pytest.raises(ConnectionError, match="API no disponible"):
+        gestor.precio_con_margen("P001")
+
+
+# ── side_effect con secuencia — respuestas diferentes por llamada ─
+def test_comportamiento_con_retries():
+    mock_api = MagicMock(spec=APIExterna)
+    # Primera llamada falla, segunda devuelve precio
+    mock_api.get_precio.side_effect = [
+        ConnectionError("timeout"),
+        99.99,
+    ]
+
+    gestor = GestorPrecios(api=mock_api)
+
+    with pytest.raises(ConnectionError):
+        gestor.precio_con_margen("P001")  # primera llamada — falla
+
+    assert mock_api.get_precio.call_count == 1
+
+
+# ── side_effect con función — lógica dinámica ──────────────────
+def test_precios_variables_por_producto():
+    precios = {"P001": 100.0, "P002": 50.0}
+
+    mock_api = MagicMock(spec=APIExterna)
+    mock_api.get_precio.side_effect = lambda pid: precios[pid]
+
+    gestor = GestorPrecios(api=mock_api)
+
+    assert gestor.precio_con_margen("P001") == 120.0
+    assert gestor.precio_con_margen("P002") == 60.0
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>patch — mockear donde se usa, no donde se define</h2>
+    <p><code>patch</code> es la herramienta para mockear código que <em>no está preparado para inyección</em>: módulos externos, funciones del sistema, importaciones directas. La regla crítica: <strong>patchea donde se usa el nombre, no donde está definido</strong>.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>patch_correcto.py — la regla de "dónde patchear"</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>"""
+Estructura:
+  src/notificaciones.py       → importa smtplib
+  tests/test_notificaciones.py → patchea smtplib DESDE notificaciones.py
+"""
+# src/notificaciones.py
+import smtplib
+from email.message import EmailMessage
+
+
+def enviar_alerta(email: str, mensaje: str) -> bool:
+    try:
+        with smtplib.SMTP("smtp.empresa.com", 587) as server:
+            msg = EmailMessage()
+            msg["From"] = "alertas@empresa.com"
+            msg["To"] = email
+            msg["Subject"] = "Alerta"
+            msg.set_content(mensaje)
+            server.send_message(msg)
+        return True
+    except Exception:
+        return False
+
+
+# ── tests/test_notificaciones.py ─────────────────────────────────
+
+from unittest.mock import patch, MagicMock
+import pytest
+
+# MAL: patchear donde está definido (smtplib.SMTP) a veces no funciona
+# BIEN: patchear donde se usa (src.notificaciones.smtplib.SMTP)
+
+from src.notificaciones import enviar_alerta
+
+
+def test_enviar_alerta_devuelve_true_si_smtp_responde():
+    # El path es: módulo.donde.se.importa.NombreImportado
+    with patch("src.notificaciones.smtplib.SMTP") as mock_smtp_class:
+        mock_server = MagicMock()
+        mock_smtp_class.return_value.__enter__.return_value = mock_server
+
+        resultado = enviar_alerta("ops@empresa.com", "CPU al 100%")
+
+        assert resultado is True
+        mock_server.send_message.assert_called_once()
+
+
+def test_enviar_alerta_devuelve_false_si_smtp_falla():
+    with patch("src.notificaciones.smtplib.SMTP") as mock_smtp_class:
+        mock_smtp_class.side_effect = ConnectionRefusedError
+
+        resultado = enviar_alerta("ops@empresa.com", "CPU al 100%")
+
+        assert resultado is False
+
+
+# ── patch como decorator ─────────────────────────────────────────
+@patch("src.notificaciones.smtplib.SMTP")
+def test_con_decorator(mock_smtp):
+    mock_smtp.return_value.__enter__.return_value = MagicMock()
+    resultado = enviar_alerta("a@b.com", "test")
+    assert resultado is True
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>patch_datetime.py — patchear el tiempo (caso muy común)</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>"""Mockear datetime.now() para tests deterministas."""
+from unittest.mock import patch
+from datetime import datetime
+
+
+def generar_id_con_timestamp() -> str:
+    now = datetime.now()
+    return f"TKT-{now.strftime('%Y%m%d%H%M%S')}"
+
+
+def test_id_con_timestamp_determinista():
+    fecha_fija = datetime(2024, 1, 15, 10, 30, 0)
+
+    with patch("src.tickets.datetime") as mock_dt:
+        mock_dt.now.return_value = fecha_fija
+
+        resultado = generar_id_con_timestamp()
+
+        assert resultado == "TKT-20240115103000"
+
+
+# Alternativa más limpia: usar la librería 'freezegun'
+from freezegun import freeze_time
+
+@freeze_time("2024-01-15 10:30:00")
+def test_id_con_freeze_time():
+    resultado = generar_id_con_timestamp()
+    assert resultado == "TKT-20240115103000"
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Mock vs Stub vs Spy — elegir el doble correcto</h2>
+    <p>Ya vimos las definiciones en el Cap 1. Aquí el enfoque es práctico: <strong>cuándo usar cada uno y los errores que produce usar el incorrecto</strong>.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>mock_vs_stub_decision.py — árbol de decisión con ejemplos</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from unittest.mock import MagicMock
+from typing import Protocol
+
+
+class RepositorioProductos(Protocol):
+    def existe(self, sku: str) -> bool: ...
+    def precio(self, sku: str) -> float: ...
+    def registrar_consulta(self, sku: str) -> None: ...
+
+
+class ServicioCarrito:
+    def __init__(self, repo: RepositorioProductos) -> None:
+        self._repo = repo
+
+    def agregar(self, sku: str, cantidad: int) -> dict:
+        if not self._repo.existe(sku):
+            raise ValueError(f"Producto {sku} no existe")
+        precio = self._repo.precio(sku)
+        self._repo.registrar_consulta(sku)  # efecto secundario: auditoría
+        return {"sku": sku, "cantidad": cantidad, "subtotal": precio * cantidad}
+
+
+# ── STUB — cuando el test solo necesita un dato de entrada ────────
+# Pregunta clave: "¿me importa CÓMO se llamó el método, o solo qué devolvió?"
+# Si solo te importa el valor de retorno → STUB
+
+def test_agregar_producto_calcula_subtotal_correcto():
+    """Test del cálculo. No verifica si 'existe' fue llamado o no."""
+    stub_repo = MagicMock(spec=RepositorioProductos)
+    stub_repo.existe.return_value = True          # stub: provee dato
+    stub_repo.precio.return_value = 25.0          # stub: provee dato
+    # Nota: NO hacemos assert_called en stub_repo
+
+    servicio = ServicioCarrito(repo=stub_repo)
+    resultado = servicio.agregar("P001", 3)
+
+    assert resultado["subtotal"] == 75.0          # verificamos el resultado
+
+
+# ── MOCK — cuando el test verifica que se llamó correctamente ─────
+# Pregunta clave: "¿el contrato exige que se llame con estos args?"
+
+def test_agregar_producto_registra_consulta_de_auditoria():
+    """Test del comportamiento: ¿se registró la auditoría?"""
+    mock_repo = MagicMock(spec=RepositorioProductos)
+    mock_repo.existe.return_value = True
+    mock_repo.precio.return_value = 25.0
+
+    servicio = ServicioCarrito(repo=mock_repo)
+    servicio.agregar("P001", 3)
+
+    # MOCK: verificamos el comportamiento, no el resultado
+    mock_repo.registrar_consulta.assert_called_once_with("P001")
+
+
+# ── Antipatrón: usar Mock donde solo necesitas Stub ───────────────
+def test_fragil_que_verifica_demasiado():
+    """Este test fallará si refactorizas ServicioCarrito,
+    aunque el comportamiento final sea el mismo."""
+    mock_repo = MagicMock(spec=RepositorioProductos)
+    mock_repo.existe.return_value = True
+    mock_repo.precio.return_value = 25.0
+
+    servicio = ServicioCarrito(repo=mock_repo)
+    servicio.agregar("P001", 3)
+
+    # MAL: verificar llamadas que son detalles de implementación
+    mock_repo.existe.assert_called_once_with("P001")   # frágil
+    mock_repo.precio.assert_called_once_with("P001")   # frágil
+    # Si mañana cambias el orden de las llamadas internas, este test falla
+    # aunque el resultado final "subtotal=75.0" sea correcto
+
+
+# ── SPY — dejar que el código real se ejecute pero observar ───────
+import unittest.mock as mocker
+
+def test_spy_con_wraps():
+    """wraps permite que la función real se ejecute Y se registre la llamada."""
+    class RepoReal:
+        def existe(self, sku: str) -> bool:
+            return sku.startswith("P")
+        def precio(self, sku: str) -> float:
+            return 99.99
+        def registrar_consulta(self, sku: str) -> None:
+            pass  # en producción escribiría en BD
+
+    repo_real = RepoReal()
+    spy_repo = MagicMock(spec=RepositorioProductos, wraps=repo_real)
+
+    servicio = ServicioCarrito(repo=spy_repo)
+    resultado = servicio.agregar("P001", 2)
+
+    # El código real se ejecutó (resultado real)
+    assert resultado["subtotal"] == 199.98
+
+    # Y además podemos observar las llamadas
+    spy_repo.registrar_consulta.assert_called_once_with("P001")
+</code></pre>
+    </div>
+
+    <div class="info-box fail">
+      <span class="info-box-label">FAIL</span>
+      <strong>Error más común con mocks:</strong> verificar demasiado. Si un test usa <code>assert_called_with</code> para cada método del mock, se está acoplando a los detalles de implementación internos. Esos tests fallan con cualquier refactor aunque el comportamiento observable no cambie. Regla: solo verifica llamadas que son <em>parte del contrato observable</em>, no detalles internos de la implementación.
+    </div>
+  </section>
+
+  <section>
+    <h2>Errores comunes con mocks y cómo detectarlos</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>errores_comunes_mocks.py — los 5 errores que producen falsos positivos</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from unittest.mock import MagicMock, patch
+
+
+# ── Error 1: no usar spec= ────────────────────────────────────────
+# El mock acepta typos en nombres de métodos sin error
+class Servicio:
+    def procesar(self, datos: dict) -> bool: ...
+
+mock_malo = MagicMock()          # sin spec
+mock_malo.procesaar({"a": 1})    # typo: "procesaar" — silencioso — BUG
+
+mock_bueno = MagicMock(spec=Servicio)
+# mock_bueno.procesaar({})        # AttributeError — detecta el typo
+
+
+# ── Error 2: assert_called_once vs assert_called_once_with ───────
+# assert_called_once solo verifica que se llamó, no con qué argumentos
+mock = MagicMock()
+mock.metodo("argumento_incorrecto")
+mock.metodo.assert_called_once()               # pasa aunque el arg esté mal
+# mock.metodo.assert_called_once_with("correcto")  # fallaría — usa esta
+
+
+# ── Error 3: mockear el módulo completo cuando solo necesitas una función ─
+# MAL: mockea todo requests, incluyendo Session, adapters, etc.
+with patch("requests") as mock_req:
+    pass
+
+# BIEN: mockea solo la función que usas
+with patch("requests.get") as mock_get:
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {"ok": True}
+
+
+# ── Error 4: no resetear el mock entre calls en el mismo test ────
+mock = MagicMock()
+mock.metodo("primera_llamada")
+mock.metodo("segunda_llamada")
+
+# Este assert falla: se llamó 2 veces, no 1
+# mock.metodo.assert_called_once()  # AssertionError
+
+# Solución: reset_mock() o crear un nuevo mock por test
+mock.reset_mock()
+mock.metodo("llamada_limpia")
+mock.metodo.assert_called_once()  # ahora sí
+
+
+# ── Error 5: mock en el lugar incorrecto (ver sección de patch) ──
+# Si patcheas "smtplib.SMTP" en vez de "mi_modulo.smtplib.SMTP",
+# el mock no reemplaza el nombre en el módulo bajo test.
+# El test pasa aunque la función real se esté ejecutando.
+</code></pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Checklist antes de usar un mock: 1) ¿uso <code>spec=</code>? 2) ¿el test verifica comportamiento (contrato) o detalles de implementación? 3) ¿el patch apunta al módulo donde se <em>usa</em> la dependencia? 4) ¿necesito realmente un mock, o un Fake sería más legible y mantenible?
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m5_cap8_unit_tests.html" class="chapter-nav-btn">← Cap 8 · Tests unitarios</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m7_cap10_git_hooks.html" class="chapter-nav-btn">Cap 10 · Git hooks →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

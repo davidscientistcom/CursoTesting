@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Testing en Python — De cero a producción | LucentIA</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+<style>
+.hero {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 2.5rem;
+  margin-bottom: 2.5rem;
+  border-top: 3px solid var(--orange);
+}
+.hero h1 { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+.hero p  { color: var(--text-secondary); font-size: 0.93rem; max-width: 680px; }
+.hero-meta { display: flex; gap: 1.5rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.hero-meta span { font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-mono); }
+.hero-meta span strong { color: var(--orange); }
+.module-title {
+  font-size: 0.75rem; font-weight: 700; color: var(--orange);
+  text-transform: uppercase; letter-spacing: 0.1em; margin: 2rem 0 0.75rem;
+}
+</style>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis: testing por propiedades</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks y pipeline local</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab: refactoring guiado</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="hero">
+    <h1>Testing en Python — De cero a producción</h1>
+    <p>Un curso que empieza por el dolor real: código que no se puede testear, bugs que se cuelan, equipos que no confían en sus deploys. Aprenderás a escribir código testeable, a usar las herramientas del ecosistema Python, a mockear dependencias, a practicar TDD y a automatizar todo con git hooks.</p>
+    <div class="hero-meta">
+      <span><strong>14</strong> ficheros</span>
+      <span><strong>11</strong> capítulos + apéndice</span>
+      <span><strong>Python 3.10+</strong> · pytest · hypothesis · ruff · mypy</span>
+      <span><strong>Nivel</strong> intermedio — con fundamentos reales</span>
+    </div>
+  </div>
+
+  <p class="module-title">Módulo 1 — Por qué testear: fundamentos y código que duele</p>
+  <div class="index-grid">
+    <a href="m1_cap1_fundamentos.html" class="index-card">
+      <div class="index-card-module">Cap 1</div>
+      <h3>Fundamentos y vocabulario</h3>
+      <p>Unit · Integration · E2E · caja negra / blanca · stub · mock · spy · fake · assertion</p>
+    </a>
+    <a href="m1_cap2_codigo_que_duele.html" class="index-card">
+      <div class="index-card-module">Cap 2</div>
+      <h3>Código que duele</h3>
+      <p>Complejidad ciclomática · código en delta · SRP roto · cohesión · acoplamiento · cobertura que engaña</p>
+    </a>
+  </div>
+
+  <p class="module-title">Módulo 2 — TDD: el test dirige el diseño</p>
+  <div class="index-grid">
+    <a href="m2_cap3_tdd.html" class="index-card">
+      <div class="index-card-module">Cap 3</div>
+      <h3>TDD: el test dirige el diseño</h3>
+      <p>Red-Green-Refactor · TDD vs test-after · diseño emergente · sin mocks no hay TDD real</p>
+    </a>
+  </div>
+
+  <p class="module-title">Módulo 3 — Principios de arquitectura que reducen bugs</p>
+  <div class="index-grid">
+    <a href="m3_cap4_arquitectura_sw.html" class="index-card">
+      <div class="index-card-module">Cap 4</div>
+      <h3>Principios de arquitectura SW</h3>
+      <p>SOLID en Python · código testeable por diseño · inversión de dependencias · preview del curso de arquitectura</p>
+    </a>
+  </div>
+
+  <p class="module-title">Módulo 4 — Herramientas del ecosistema Python</p>
+  <div class="index-grid">
+    <a href="m4_cap5_pytest.html" class="index-card">
+      <div class="index-card-module">Cap 5</div>
+      <h3>pytest en profundidad</h3>
+      <p>fixtures · parametrize · marcas · conftest · plugins esenciales</p>
+    </a>
+    <a href="m4_cap6_coverage_calidad.html" class="index-card">
+      <div class="index-card-module">Cap 6</div>
+      <h3>Coverage y calidad de código</h3>
+      <p>coverage.py · ruff · mypy · black · bandit · qué mide y qué NO mide la cobertura</p>
+    </a>
+    <a href="m4_cap7_hypothesis.html" class="index-card">
+      <div class="index-card-module">Cap 7</div>
+      <h3>Hypothesis: testing por propiedades</h3>
+      <p>@given · strategies · shrinking · cuándo reemplaza tests manuales · integración con pytest</p>
+    </a>
+  </div>
+
+  <p class="module-title">Módulo 5 — Tests unitarios en profundidad</p>
+  <div class="index-grid">
+    <a href="m5_cap8_unit_tests.html" class="index-card">
+      <div class="index-card-module">Cap 8</div>
+      <h3>Criterios de test unitario</h3>
+      <p>Probar int · string · lista · objeto · None · excepciones · qué hace que un test sea bueno o malo</p>
+    </a>
+  </div>
+
+  <p class="module-title">Módulo 6 — Mocks y desacoplamiento</p>
+  <div class="index-grid">
+    <a href="m6_cap9_mocks.html" class="index-card">
+      <div class="index-card-module">Cap 9</div>
+      <h3>Mocks y desacoplamiento</h3>
+      <p>MagicMock · patch · spec · side_effect · Mock vs Stub vs Spy vs Fake · cuándo NO mockear</p>
+    </a>
+  </div>
+
+  <p class="module-title">Módulo 7 — Git hooks y automatización</p>
+  <div class="index-grid">
+    <a href="m7_cap10_git_hooks.html" class="index-card">
+      <div class="index-card-module">Cap 10</div>
+      <h3>Git hooks y pipeline local</h3>
+      <p>pre-commit · hooks personalizados · ruff + mypy + pytest + coverage en un solo gate</p>
+    </a>
+  </div>
+
+  <p class="module-title">Módulo 8 — Laboratorio final</p>
+  <div class="index-grid">
+    <a href="m8_cap11_lab_refactor.html" class="index-card">
+      <div class="index-card-module">Cap 11 · Lab</div>
+      <h3>Lab: refactoring guiado por tests</h3>
+      <p>Código legacy con bugs reales · ciclo Red-Green-Refactor completo resuelto · antes/después</p>
+    </a>
+  </div>
+
+  <p class="module-title">Apéndice</p>
+  <div class="index-grid">
+    <a href="apendice_referencia.html" class="index-card">
+      <div class="index-card-module">Apéndice</div>
+      <h3>Referencia y cheatsheet</h3>
+      <p>Herramientas, criterios de test, anti-patrones, flujo completo, comandos rápidos</p>
+    </a>
+  </div>
+
+</main>
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

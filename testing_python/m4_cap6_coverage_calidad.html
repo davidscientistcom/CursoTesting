@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 6 — Coverage y calidad de código | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li class="active"><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 4 — Herramientas · Capítulo 6</div>
+    <h1 class="page-header-title">Coverage y calidad de código</h1>
+    <p class="page-header-sub">coverage.py · pytest-cov · ruff · mypy · black · bandit · el pipeline completo</p>
+  </div>
+
+  <section>
+    <h2>Coverage: qué mide y qué no mide</h2>
+    <p>La cobertura mide qué líneas (o ramas) de código se ejecutaron durante los tests. Es una <strong>métrica necesaria pero no suficiente</strong>. Un 90% de cobertura no significa que el 90% del comportamiento esté verificado — significa que el 90% del código se ejecutó.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th>Tipo de cobertura</th><th>Qué mide</th><th>Cuando usarlo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Line coverage</strong></td>
+          <td>Si cada línea fue ejecutada al menos una vez</td>
+          <td>Mínimo indispensable — detecta código muerto</td>
+        </tr>
+        <tr>
+          <td><strong>Branch coverage</strong></td>
+          <td>Si cada rama de cada condicional (if/else, try/except) fue ejecutada</td>
+          <td>Recomendado — detecta ramas no testadas en <code>if</code> complejos</td>
+        </tr>
+        <tr>
+          <td><strong>Mutation testing</strong></td>
+          <td>Si cambiar el código hace fallar los tests (mutmut, cosmic-ray)</td>
+          <td>Para código crítico — mide calidad real de assertions</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box warn">
+      <span class="info-box-label">WARN</span>
+      <strong>La cobertura que engaña:</strong> un test que llama a una función sin hacer ningún <code>assert</code> da 100% de cobertura de línea con 0% de valor. El número en sí no garantiza nada — garantiza un mínimo de ejercicio del código, no la correctitud de la verificación.
+    </div>
+  </section>
+
+  <section>
+    <h2>coverage.py y pytest-cov</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>coverage_basico.sh — comandos esenciales</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>pip install pytest-cov coverage
+
+# Cobertura básica — muestra resumen en terminal
+pytest --cov=src
+
+# Muestra líneas no cubiertas (imprescindible)
+pytest --cov=src --cov-report=term-missing
+
+# Branch coverage — detecta ramas de if/else no testadas
+pytest --cov=src --cov-report=term-missing --cov-branch
+
+# Génerar reporte HTML navegable
+pytest --cov=src --cov-report=html
+# Abre htmlcov/index.html en el navegador
+
+# Fallar si la cobertura cae del umbral (para CI)
+pytest --cov=src --cov-fail-under=80
+
+# Combinar varios formatos
+pytest --cov=src \
+       --cov-report=term-missing \
+       --cov-report=html \
+       --cov-report=xml \        # para SonarQube / CI
+       --cov-branch \
+       --cov-fail-under=80
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>.coveragerc — configuración del proyecto</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>[run]
+source = src
+branch = true
+omit =
+    src/migrations/*
+    src/settings_local.py
+    */__pycache__/*
+    */tests/*
+
+[report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+
+[html]
+directory = htmlcov
+
+# Excluir líneas del conteo (casos legítimos)
+# Comentar una línea con  # pragma: no cover  la excluye
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    @overload
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>pragma_ejemplo.py — cuándo usar pragma: no cover</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover
+    # Imports solo para type checkers, nunca se ejecutan en runtime
+    from collections.abc import Iterator
+
+
+class Servicio:
+    def __repr__(self) -> str:  # pragma: no cover
+        # No vale la pena testear representaciones de debug
+        return f"Servicio(id={self.id})"
+
+    def proceso_imposible_de_alcanzar_en_dominio_normal(self) -> None:
+        # Invariante de dominio que nunca debe romperse
+        raise NotImplementedError("Este caso no debe ocurrir nunca")  # pragma: no cover
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>ruff — linter y formatter ultrarrápido</h2>
+    <p>ruff (Astral, 2022) es un linter y formatter escrito en Rust que reemplaza a <strong>flake8 + isort + pyupgrade + bandit-lite + black</strong> en un solo comando, siendo 10-100x más rápido. Es el estándar emergente para proyectos nuevos en 2024-2026.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>ruff_uso.sh — instalación y comandos</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>pip install ruff
+
+# Verificar problemas sin modificar
+ruff check src/
+
+# Corregir automáticamente lo que puede
+ruff check --fix src/
+
+# Formatear código (equivalente a black)
+ruff format src/
+
+# Verificar formato sin modificar (para CI)
+ruff format --check src/
+
+# Ver todas las reglas violadas con descripción
+ruff check src/ --show-fixes
+
+# Uso típico en pre-commit (ver Cap 10):
+# ruff check --fix .
+# ruff format .
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>pyproject.toml — configuración de ruff</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes (imports no usados, variables no definidas)
+    "I",    # isort (orden de imports)
+    "N",    # pep8-naming
+    "UP",   # pyupgrade (modernizar sintaxis: f-strings, type hints)
+    "B",    # flake8-bugbear (patrones que suelen ser bugs)
+    "S",    # flake8-bandit (seguridad básica)
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+]
+ignore = [
+    "S101",  # uso de assert (legítimo en tests)
+    "B008",  # llamadas a funciones en argumentos por defecto (FastAPI pattern)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # assert está bien en tests
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>ruff_ejemplos_fixes.py — qué detecta y corrige ruff automáticamente</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># ── Antes de ruff ──────────────────────────────────────────────
+import os, sys                    # E401: multiple imports
+import json                       # F401: unused import
+from typing import List, Dict     # UP006: use list/dict directly (py3.9+)
+
+class usuario:                    # N801: class name should be CapWords
+    ID = "admin"
+
+def get_users() -> List[Dict]:    # UP006: modernizar type hints
+    items = [x for x in range(10) if x % 2 == 0]
+    return items
+
+
+# ── Después de ruff --fix + ruff format ────────────────────────
+import os
+import sys
+
+class Usuario:                    # N801 corregido
+    ID = "admin"
+
+def get_users() -> list[dict]:    # UP006 corregido
+    return [x for x in range(10) if x % 2 == 0]
+
+
+# ── Detecciones de seguridad (reglas S) ─────────────────────────
+import hashlib
+
+# S324: uso de MD5/SHA1 para hashing de contraseñas → inseguro
+hash_inseguro = hashlib.md5(b"password").hexdigest()  # ruff lo detecta
+
+# S106: posible contraseña hardcoded
+password = "supersecret123"  # ruff alerta
+
+# Forma segura:
+import secrets
+token = secrets.token_hex(32)     # OK
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>mypy — tipado estático</h2>
+    <p>mypy analiza las anotaciones de tipo de Python y detecta errores de tipo <em>antes de ejecutar el código</em>. No es obligatorio, pero en proyectos que maduran hacia producción el tipado estático detecta una categoría entera de bugs que los tests no cubren: tipos incorrectos en interfaces.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>mypy_uso.sh — instalación y configuración</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>pip install mypy
+
+# Verificar un módulo
+mypy src/auth.py
+
+# Verificar todo el proyecto
+mypy src/
+
+# Strict mode — los errores de tipo nunca pasan desapercibidos
+mypy --strict src/
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>mypy_config.toml — configuración en pyproject.toml</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>[tool.mypy]
+python_version = "3.11"
+strict = true               # activa todas las verificaciones
+
+# Si strict es muy agresivo para proyectos legacy, activar progresivamente:
+# disallow_untyped_defs = true     → todas las funciones deben tener tipos
+# disallow_any_generics = true     → no List sin parámetro
+# warn_return_any = true           → no retornar Any implícito
+# warn_unused_ignores = true       → avisar si type: ignore ya no es necesario
+
+ignore_missing_imports = true    # para libs sin stubs (boto3, etc.)
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false    # tests pueden ser menos estrictos
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>mypy_ejemplos.py — errores que mypy detecta antes de ejecutar</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from dataclasses import dataclass
+
+
+@dataclass
+class Pedido:
+    id: int
+    total: float
+    estado: str
+
+
+def aplicar_descuento(pedido: Pedido, porcentaje: float) -> Pedido:
+    nuevo_total = pedido.total * (1 - porcentaje / 100)
+    return Pedido(id=pedido.id, total=nuevo_total, estado=pedido.estado)
+
+
+# ── Errores que mypy detecta (no pytest) ───────────────────────
+
+# Error 1: tipo incorrecto en argumento
+pedido = Pedido(id=1, total=100.0, estado="pendiente")
+resultado = aplicar_descuento(pedido, "10")  # mypy: Argument 2 has incompatible type "str"
+
+# Error 2: atributo que no existe
+pedido.precio_final  # mypy: "Pedido" has no attribute "precio_final"
+
+# Error 3: retorno incorrecto
+def obtener_estado(pedido: Pedido | None) -> str:
+    if pedido is None:
+        return None  # mypy: Incompatible return value type (got "None", expected "str")
+    return pedido.estado
+
+
+# ── Forma correcta ──────────────────────────────────────────────
+def obtener_estado_correcto(pedido: Pedido | None) -> str | None:
+    if pedido is None:
+        return None
+    return pedido.estado
+</code></pre>
+    </div>
+
+    <div class="info-box info">
+      <span class="info-box-label">INFO</span>
+      mypy y pytest se complementan: mypy detecta errores de tipo en interfaces (contratos de funciones), pytest detecta errores de lógica (comportamiento). Juntos cubren dos dimensiones ortogonales de calidad. En proyectos grandes, mypy paga especialmente cuando hay múltiples personas trabajando en el mismo codebase.
+    </div>
+  </section>
+
+  <section>
+    <h2>bandit — análisis de seguridad</h2>
+    <p>bandit escanea el código Python en busca de patrones de seguridad conocidos: inyecciones SQL, uso de MD5/SHA1 para hashing seguro, subprocesos con <code>shell=True</code>, datos de usuario en consultas dinámicas.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>bandit_uso.sh — escaneo de seguridad</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>pip install bandit
+
+# Escanear directorio
+bandit -r src/
+
+# Solo niveles altos (HIGH) — para CI estricto
+bandit -r src/ -ll
+
+# Reporte en JSON para integración con CI
+bandit -r src/ -f json -o bandit-report.json
+
+# Excluir tests del escaneo (los tests usan assert, subprocess en entornos controlados)
+bandit -r src/ --exclude tests/
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>bandit_ejemplos.py — qué detecta bandit</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import subprocess
+import hashlib
+import sqlite3
+import pickle
+
+
+# B602: subprocess con shell=True — inyección de comandos
+def ejecutar_backup(nombre_db: str) -> None:
+    subprocess.run(f"pg_dump {nombre_db}", shell=True)  # MALO: bandit HIGH
+    # Si nombre_db viene del usuario: "mi_db; rm -rf /"
+    subprocess.run(["pg_dump", nombre_db], check=True)  # BIEN: lista de args
+
+
+# B324: MD5 para hashing seguro — criptográficamente débil
+def hash_password_malo(password: str) -> str:
+    return hashlib.md5(password.encode()).hexdigest()  # MALO: bandit HIGH
+
+import bcrypt
+def hash_password_correcto(password: str) -> bytes:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt())  # BIEN
+
+
+# B608: posible SQL injection
+def buscar_usuario_malo(db: sqlite3.Connection, nombre: str):
+    # MALO: inyección si nombre viene del usuario
+    db.execute(f"SELECT * FROM usuarios WHERE nombre = '{nombre}'")  # bandit MEDIUM
+
+def buscar_usuario_correcto(db: sqlite3.Connection, nombre: str):
+    # BIEN: parámetros enlazados, no interpolación
+    db.execute("SELECT * FROM usuarios WHERE nombre = ?", (nombre,))
+
+
+# B301: pickle con datos no confiables — deserialización arbitraria
+def cargar_datos_malo(datos_bytes: bytes):
+    return pickle.loads(datos_bytes)  # MALO: ejecución de código arbitrario
+
+import json
+def cargar_datos_correcto(datos_str: str):
+    return json.loads(datos_str)  # BIEN para datos serializados de forma segura
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>El pipeline completo de calidad</h2>
+    <p>Las herramientas aisladas tienen valor limitado. El valor real emerge cuando se <strong>encadenan en un pipeline que se ejecuta en cada commit</strong> (Cap 10). Esta es la configuración estándar:</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>quality_pipeline.sh — pipeline completo de calidad local y CI</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">#!/bin/bash
+# scripts/check_quality.sh — ejecutar todo el pipeline de calidad
+
+set -e  # parar al primer error
+
+echo "=== 1. Formato y linting (ruff) ==="
+ruff format --check src/ tests/
+ruff check src/ tests/
+
+echo "=== 2. Tipos estáticos (mypy) ==="
+mypy src/
+
+echo "=== 3. Seguridad (bandit) ==="
+bandit -r src/ --exclude tests/ -ll  # solo HIGH y MEDIUM
+
+echo "=== 4. Tests con coverage ==="
+pytest \
+    --cov=src \
+    --cov-report=term-missing \
+    --cov-branch \
+    --cov-fail-under=80 \
+    -v
+
+echo "=== Calidad OK ==="
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>pyproject.toml — configuración unificada de todas las herramientas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "mi-proyecto"
+version = "1.0.0"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "integration: requiere infraestructura",
+    "slow: tarda más de 5s",
+    "smoke: test de humo rápido",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = ["src/migrations/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "S", "C4", "SIM"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+</code></pre>
+    </div>
+
+    <div class="diagram-block">
+<pre>
+Pipeline de calidad — cuándo ejecutar cada herramienta:
+
+  Developer commit
+       │
+       ▼
+  pre-commit hook (local, &lt;10s)
+  ┌────────────────────────────────┐
+  │ ruff format --check            │  → formato consistente
+  │ ruff check                     │  → linting rápido
+  └────────────────────────────────┘
+       │
+       ▼
+  push / PR (CI, &lt;4min)
+  ┌────────────────────────────────┐
+  │ mypy --strict                  │  → tipos estáticos
+  │ bandit -r src/ -ll             │  → seguridad
+  │ pytest --cov --cov-branch      │  → tests + cobertura
+  │ pytest --cov-fail-under=80     │  → gate de cobertura
+  └────────────────────────────────┘
+       │
+       ▼
+  Deploy (solo si todo pasa)
+</pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Separar el pipeline en dos fases es clave: el hook local es rápido (formato + linting, &lt;10s) para no bloquear el flujo del desarrollador. El CI es completo (tipos + seguridad + tests) para garantizar calidad antes del merge. El Cap 10 implementa esto con pre-commit y GitHub Actions.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m4_cap5_pytest.html" class="chapter-nav-btn">← Cap 5 · pytest</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m4_cap7_hypothesis.html" class="chapter-nav-btn">Cap 7 · Hypothesis →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

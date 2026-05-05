@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 3 — TDD: el test dirige el diseño | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+<style>
+.tdd-cycle {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.tdd-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem;
+  text-align: center;
+}
+.tdd-card.red   { border-top: 4px solid var(--red);   }
+.tdd-card.green { border-top: 4px solid var(--green); }
+.tdd-card.blue  { border-top: 4px solid var(--cyan);  }
+.tdd-card .fase {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; margin-bottom: 0.5rem;
+}
+.tdd-card.red   .fase { color: var(--red);   }
+.tdd-card.green .fase { color: var(--green); }
+.tdd-card.blue  .fase { color: var(--cyan);  }
+.tdd-card h4 { font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.4rem; }
+.tdd-card p  { font-size: 0.82rem; color: var(--text-secondary); margin: 0; }
+</style>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li class="active"><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 2 — TDD · Capítulo 3</div>
+    <h1 class="page-header-title">TDD: el test dirige el diseño</h1>
+    <p class="page-header-sub">Red-Green-Refactor · diseño emergente · TDD vs test-after · sin mocks no hay TDD real</p>
+  </div>
+
+  <section>
+    <h2>Qué es TDD y qué no es</h2>
+    <p>TDD (Test-Driven Development) no es "escribir tests antes del código". Eso es una consecuencia. TDD es <strong>usar los tests como herramienta de diseño</strong>: el test te fuerza a pensar en la interfaz, el contrato y los casos borde <em>antes</em> de pensar en la implementación.</p>
+    <p>El resultado secundario es que tienes tests. El resultado principal es que tienes mejor diseño.</p>
+
+    <div class="tdd-cycle">
+      <div class="tdd-card red">
+        <div class="fase">Fase 1 — Red</div>
+        <h4>Escribe un test que falla</h4>
+        <p>El test describe el comportamiento que quieres. No existe implementación. El test debe fallar por la razón correcta, no por error de sintaxis.</p>
+      </div>
+      <div class="tdd-card green">
+        <div class="fase">Fase 2 — Green</div>
+        <h4>Haz el test pasar</h4>
+        <p>Escribe el <em>mínimo código</em> necesario para que el test pase. No más. No te anticipes a requisitos futuros. La implementación puede ser fea.</p>
+      </div>
+      <div class="tdd-card blue">
+        <div class="fase">Fase 3 — Refactor</div>
+        <h4>Limpia sin romper</h4>
+        <p>Mejora el diseño del código con los tests como red de seguridad. Si algo se rompe, lo sabes en segundos. Vuelve al estado anterior y refactoriza más pequeño.</p>
+      </div>
+    </div>
+
+    <div class="info-box info">
+      <span class="info-box-label">INFO</span>
+      El ciclo Red-Green-Refactor no es de horas sino de <strong>minutos</strong>. Un ciclo típico tarda 2-5 minutos. Hacer TDD de forma disciplinada significa hacer decenas de ciclos en una jornada. Si tu ciclo tarda 30 minutos, algo está mal: o el test es demasiado grande, o la implementación más mínima que buscas no es mínima.
+    </div>
+  </section>
+
+  <section>
+    <h2>TDD en la práctica — ciclo completo paso a paso</h2>
+    <p>Vamos a implementar un servicio de autenticación de usuarios con TDD. No existe ningún código de producción todavía. El test va primero.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso_1_RED.py — test que describe el comportamiento deseado. Falla porque no existe la clase</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># test_auth.py — escribimos esto PRIMERO, antes de ningún código de producción
+
+from auth import ServicioAuth, CredencialesInvalidas  # no existen todavía
+
+
+def test_login_exitoso_devuelve_token():
+    """Un usuario con credenciales válidas obtiene un token."""
+    servicio = ServicioAuth()
+    token = servicio.login("ana@ejemplo.com", "password123")
+    assert token is not None
+    assert len(token) &gt; 0
+
+
+# $ pytest test_auth.py
+# ERROR: ModuleNotFoundError: No module named 'auth'
+#
+# RED: el test falla. Razón correcta: no existe la implementación.
+# Ahora sabemos qué interfaz queremos: ServicioAuth(), .login(email, password).
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso_2_GREEN.py — implementación mínima para pasar el test. Sin sobreingeniería</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code"># auth.py — el mínimo para hacer pasar el test
+
+import secrets
+
+
+class CredencialesInvalidas(Exception):
+    pass
+
+
+class ServicioAuth:
+    def login(self, email: str, password: str) -> str:
+        # Implementación mínima: cualquier credencial genera un token
+        return secrets.token_hex(32)
+
+
+# $ pytest test_auth.py
+# PASSED ✓
+#
+# GREEN: el test pasa. La implementación es fea (no valida nada),
+# pero es el mínimo para satisfacer el contrato definido por el test.
+# No escribimos más de lo necesario.
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso_3_NEXT_RED.py — añadir el siguiente comportamiento: credenciales inválidas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># test_auth.py — añadimos el segundo comportamiento
+
+from auth import ServicioAuth, CredencialesInvalidas
+import pytest
+
+
+def test_login_exitoso_devuelve_token():
+    servicio = ServicioAuth()
+    token = servicio.login("ana@ejemplo.com", "password123")
+    assert token is not None
+    assert len(token) &gt; 0
+
+
+def test_login_fallido_lanza_excepcion():
+    """Credenciales incorrectas deben lanzar CredencialesInvalidas."""
+    servicio = ServicioAuth()
+    with pytest.raises(CredencialesInvalidas):
+        servicio.login("fake@ejemplo.com", "wrong")
+
+
+# $ pytest test_auth.py
+# .F
+# FAILED test_auth.py::test_login_fallido_lanza_excepcion
+# ServicioAuth.login no lanza la excepción → RED.
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso_4_GREEN_REFACTOR.py — implementación real + refactor con mock del repositorio</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># auth.py — ahora la implementación real emerge del test
+# Nota: el test nos fuerza a pensar en cómo validamos credenciales.
+# Resultado: necesitamos un repositorio de usuarios. TDD nos da la arquitectura.
+
+import secrets
+from typing import Protocol
+
+
+class RepositorioUsuarios(Protocol):
+    def verificar_credenciales(self, email: str, password: str) -> bool: ...
+
+
+class CredencialesInvalidas(Exception):
+    pass
+
+
+class ServicioAuth:
+    def __init__(self, repo: RepositorioUsuarios | None = None) -> None:
+        # Si no se inyecta repo, usamos uno en memoria para desarrollo
+        self._repo = repo or _RepoEnMemoria()
+
+    def login(self, email: str, password: str) -> str:
+        if not self._repo.verificar_credenciales(email, password):
+            raise CredencialesInvalidas(f"Credenciales inválidas para {email}")
+        return secrets.token_hex(32)
+
+
+class _RepoEnMemoria:
+    """Implementación por defecto para desarrollo. En producción se inyecta el real."""
+    _usuarios = {"ana@ejemplo.com": "password123"}
+
+    def verificar_credenciales(self, email: str, password: str) -> bool:
+        return self._usuarios.get(email) == password
+
+
+# $ pytest test_auth.py
+# ..
+# PASSED ✓ GREEN con diseño real.
+# El TDD nos forzó a:
+# 1. Definir la interfaz (login(email, password) -> str)
+# 2. Separar Auth de la fuente de datos (RepositorioUsuarios Protocol)
+# 3. Hacer el código testeable por diseño (inyección en __init__)
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>TDD vs test-after — por qué el orden cambia el diseño</h2>
+    <p>Escribir tests antes y después del código produce <em>resultados radicalmente distintos</em>, aunque al final ambos tengan tests.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th></th><th>TDD (test primero)</th><th>Test-after (test después)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Diseño de la interfaz</strong></td>
+          <td>Lo define el test antes de implementar. Siempre limpio.</td>
+          <td>Lo define la implementación. El test se adapta a lo que hay.</td>
+        </tr>
+        <tr>
+          <td><strong>Testabilidad</strong></td>
+          <td>Garantizada: si algo no es testeable, no puedes avanzar.</td>
+          <td>Puede ser muy baja si la implementación es acoplada.</td>
+        </tr>
+        <tr>
+          <td><strong>Cobertura de casos borde</strong></td>
+          <td>Alta: piensas en los casos antes de implementar.</td>
+          <td>Baja: tiendes a testear el camino feliz que ya escribiste.</td>
+        </tr>
+        <tr>
+          <td><strong>Over-engineering</strong></td>
+          <td>Bajo: solo implementas lo que el test requiere.</td>
+          <td>Alto: implementas "lo que crees que hará falta" sin test que lo guíe.</td>
+        </tr>
+        <tr>
+          <td><strong>Confianza al refactorizar</strong></td>
+          <td>Alta: los tests son la red de seguridad del refactor.</td>
+          <td>Media o baja: los tests se escribieron para el código actual.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box warn">
+      <span class="info-box-label">WARN</span>
+      El mayor error al aprender TDD es aplicarlo religiosamente a <em>todo</em> desde el primer día. TDD tiene coste de aprendizaje. Aplícalo primero a la lógica de negocio pura (donde más valor da), luego extiéndelo. No lo apliques a código de configuración, scripts de migración o pruebas de concepto.
+    </div>
+  </section>
+
+  <section>
+    <h2>Sin mocks no hay TDD real — el eslabón que une todo</h2>
+    <p>Aquí está el punto que más se omite en los tutoriales de TDD: <strong>si no sabes usar mocks, no puedes hacer TDD a nivel unitario</strong>.</p>
+    <p>Cuando el test del Cap 3 llegó a "necesito verificar credenciales", tuvimos que decidir: ¿cómo isolo el <code>ServicioAuth</code> de la base de datos real? La respuesta es el <code>Protocol</code> + mock en el test. Si no sabemos mockear, o bien:</p>
+    <ul>
+      <li>Levantamos una base de datos real en cada test (lento, frágil — deja de ser unitario)</li>
+      <li>No podemos separar <code>ServicioAuth</code> del repositorio (alto acoplamiento — el ciclo Cap 2)</li>
+      <li>Abandonamos TDD porque "es muy difícil" (en realidad, es que el código no está diseñado para ello)</li>
+    </ul>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>tdd_con_mock.py — test real de ServicioAuth usando mock del repositorio</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from unittest.mock import MagicMock
+from auth import ServicioAuth, CredencialesInvalidas
+import pytest
+
+
+# El test no necesita ninguna base de datos.
+# El mock simula el RepositorioUsuarios con el comportamiento que queremos.
+
+def test_login_llama_al_repo_con_credenciales_correctas():
+    """TDD: verificar que ServicioAuth delega la verificación al repositorio."""
+    mock_repo = MagicMock()
+    mock_repo.verificar_credenciales.return_value = True
+
+    servicio = ServicioAuth(repo=mock_repo)
+    servicio.login("ana@ejemplo.com", "pass123")
+
+    # El Mock verifica el COMPORTAMIENTO: ¿se llamó con los argumentos correctos?
+    mock_repo.verificar_credenciales.assert_called_once_with(
+        "ana@ejemplo.com", "pass123"
+    )
+
+
+def test_login_lanza_excepcion_si_repo_dice_falso():
+    """Si repo dice que las credenciales son incorrectas, debe lanzar la excepción."""
+    mock_repo = MagicMock()
+    mock_repo.verificar_credenciales.return_value = False  # Stub behavior
+
+    servicio = ServicioAuth(repo=mock_repo)
+
+    with pytest.raises(CredencialesInvalidas):
+        servicio.login("hacker@ejemplo.com", "wrong")
+
+
+# Sin el mock, estos tests necesitarían:
+# - Una base de datos corriendo
+# - Datos de prueba cargados
+# - Limpieza después del test
+# → El mock hace que el test sea instantáneo, determinista y aislado.
+</code></pre>
+    </div>
+
+    <div class="diagram-block">
+<pre>
+El bucle de aprendizaje correcto:
+
+  ┌─────────────────────────────────────────────────────┐
+  │                                                     │
+  │   Cap 2: Código que duele                           │
+  │   → entiendes POR QUÉ necesitas mejor diseño        │
+  │                  │                                  │
+  │                  ↓                                  │
+  │   Cap 3 (este): TDD                                 │
+  │   → entiendes QUÉ es diseñar guiado por tests       │
+  │                  │                                  │
+  │                  ↓                                  │
+  │   Cap 9: Mocks                                      │
+  │   → aprendes CÓMO aislar dependencias               │
+  │                  │                                  │
+  │                  ↓                                  │
+  │   Vuelta a Cap 3:                                   │
+  │   → ahora puedes practicar TDD real con mocks       │
+  │                                                     │
+  └─────────────────────────────────────────────────────┘
+
+No son capítulos aislados. Se retroalimentan.
+</pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      TDD no es una religión. Es una herramienta de diseño con una propiedad muy valiosa: <strong>si no puedes escribir el test primero, es una señal de que el diseño tiene problemas</strong>. Un código que solo es testeable con toda la infraestructura levantada no está bien diseñado. El dolor de hacer TDD en código acoplado es el detector de problemas de arquitectura más honesto que existe.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m1_cap2_codigo_que_duele.html" class="chapter-nav-btn">← Cap 2 · Código que duele</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m3_cap4_arquitectura_sw.html" class="chapter-nav-btn">Cap 4 · Arquitectura SW →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

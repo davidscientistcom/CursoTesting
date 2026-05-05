@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 11 — Lab: Refactoring con TDD | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+<style>
+.lab-step {
+  border-left: 3px solid var(--cyan);
+  padding: 0.8rem 1.2rem;
+  margin: 1.5rem 0;
+  background: var(--bg-card);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.lab-step-num {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+  margin-bottom: 0.3rem;
+}
+</style>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li class="active"><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 8 — Lab · Capítulo 11</div>
+    <h1 class="page-header-title">Lab: Refactoring con TDD</h1>
+    <p class="page-header-sub">código legacy · characterization tests · Red-Green-Refactor aplicado · el proceso completo resuelto</p>
+  </div>
+
+  <section>
+    <h2>El escenario: sistema legacy de procesamiento de pedidos</h2>
+    <p>Te entregan el siguiente código. Lleva 3 años en producción. No hay tests. Nadie se atreve a tocarlo. Tu tarea: dejarlo con tests, desacoplado y mantenible, sin romper el comportamiento existente.</p>
+    <p><strong>Regla del lab:</strong> antes de cambiar una sola línea de producción, tienes que tener tests pasando. El refactor se hace con la red de seguridad puesta, no antes.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>legacy_pedidos.py — el código que tienes que refactorizar</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># legacy/pedidos.py — código legacy real. Complejidad ciclomática: 12
+# SRP violado: 4 responsabilidades en una función
+# Dependencia hard-coded a smtplib (no testeable en aislamiento)
+# Sin tipos ni docstrings
+# Variables con nombres ambiguos
+
+import smtplib
+import sqlite3
+from email.message import EmailMessage
+from datetime import datetime
+
+
+DB_PATH = "/var/data/pedidos.db"
+SMTP_HOST = "smtp.empresa.com"
+SMTP_PORT = 587
+
+
+def procesar_pedido(pid, uid, items, promo=None):
+    # Calcular total
+    total = 0
+    for item in items:
+        if item["tipo"] == "fisico":
+            if item["qty"] > 0:
+                total += item["precio"] * item["qty"]
+                if item["qty"] >= 10:
+                    total -= item["precio"] * item["qty"] * 0.05  # 5% bulk
+        elif item["tipo"] == "digital":
+            total += item["precio"] * item["qty"]
+        else:
+            pass  # ignorar tipos desconocidos
+
+    # Aplicar promo
+    if promo:
+        if promo == "VERANO20":
+            if total > 50:
+                total = total * 0.80
+        elif promo == "BIENVENIDA":
+            total = total - 10
+            if total < 0:
+                total = 0
+        elif promo.startswith("CUSTOM_"):
+            pct = int(promo.split("_")[1])
+            total = total * (1 - pct / 100)
+
+    # Guardar en BD
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO pedidos (user_id, total, fecha, estado) VALUES (?, ?, ?, ?)",
+        (uid, total, datetime.now().isoformat(), "pendiente")
+    )
+    nuevo_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+
+    # Enviar email
+    if uid:
+        conn2 = sqlite3.connect(DB_PATH)
+        cur2 = conn2.cursor()
+        cur2.execute("SELECT email FROM usuarios WHERE id=?", (uid,))
+        row = cur2.fetchone()
+        conn2.close()
+
+        if row:
+            try:
+                with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as s:
+                    msg = EmailMessage()
+                    msg["From"] = "pedidos@empresa.com"
+                    msg["To"] = row[0]
+                    msg["Subject"] = f"Pedido #{nuevo_id} recibido"
+                    msg.set_content(f"Total: {total:.2f}€. Gracias por tu compra.")
+                    s.send_message(msg)
+            except Exception:
+                pass  # silenciar errores de email
+
+    return {"id": nuevo_id, "total": total, "estado": "pendiente"}
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Paso 1 — Characterization tests: capturar el comportamiento actual</h2>
+    <p>Antes de refactorizar, necesitas tests que describan el comportamiento actual del código. Estos tests no verifican si el código es correcto — verifican qué hace <em>ahora mismo</em>. Son tu red de seguridad.</p>
+
+    <div class="lab-step">
+      <div class="lab-step-num">Problema identificado primero</div>
+      <code>procesar_pedido</code> tiene 4 responsabilidades: calcular total, aplicar promo, persistir en BD, enviar email. Para testearla necesitamos BD real y SMTP real. Imposible de aislar tal cual.
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso1_characterization.py — tests de caracterización con patch para aislar la infraestructura</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>"""
+Characterization tests: capturan el comportamiento actual.
+Usan patch para aislar BD y SMTP porque el código legacy no está preparado
+para inyección. Esto es un paso intermedio — luego los eliminaremos
+cuando tengamos el diseño limpio.
+"""
+import pytest
+from unittest.mock import patch, MagicMock
+
+
+def make_mock_db():
+    """Crea un mock de sqlite3.connect que simula BD."""
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.lastrowid = 42
+    mock_conn.cursor.return_value = mock_cursor
+    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    return mock_conn, mock_cursor
+
+
+@patch("legacy.pedidos.smtplib.SMTP")
+@patch("legacy.pedidos.sqlite3.connect")
+def test_devuelve_id_y_estado_pendiente(mock_sqlite, mock_smtp):
+    mock_conn, mock_cursor = make_mock_db()
+    mock_sqlite.return_value = mock_conn
+    mock_cursor.fetchone.return_value = ("ana@ejemplo.com",)
+
+    from legacy.pedidos import procesar_pedido
+    resultado = procesar_pedido(
+        pid=None,
+        uid=1,
+        items=[{"tipo": "fisico", "qty": 2, "precio": 50.0}]
+    )
+
+    assert resultado["id"] == 42
+    assert resultado["estado"] == "pendiente"
+
+
+@patch("legacy.pedidos.smtplib.SMTP")
+@patch("legacy.pedidos.sqlite3.connect")
+def test_total_items_fisicos_sin_promo(mock_sqlite, mock_smtp):
+    mock_conn, mock_cursor = make_mock_db()
+    mock_sqlite.return_value = mock_conn
+    mock_cursor.fetchone.return_value = None
+
+    from legacy.pedidos import procesar_pedido
+    resultado = procesar_pedido(
+        pid=None,
+        uid=1,
+        items=[
+            {"tipo": "fisico", "qty": 2, "precio": 50.0},
+            {"tipo": "digital", "qty": 1, "precio": 20.0},
+        ]
+    )
+
+    assert resultado["total"] == 120.0  # 2*50 + 1*20
+
+
+@patch("legacy.pedidos.smtplib.SMTP")
+@patch("legacy.pedidos.sqlite3.connect")
+def test_descuento_bulk_10_o_mas_unidades(mock_sqlite, mock_smtp):
+    mock_conn, mock_cursor = make_mock_db()
+    mock_sqlite.return_value = mock_conn
+    mock_cursor.fetchone.return_value = None
+
+    from legacy.pedidos import procesar_pedido
+    resultado = procesar_pedido(
+        pid=None,
+        uid=1,
+        items=[{"tipo": "fisico", "qty": 10, "precio": 100.0}]
+    )
+
+    # 10 * 100 = 1000, descuento 5% = 50, total = 950
+    assert resultado["total"] == 950.0
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Paso 2 — Extraer la lógica pura: CalculadorTotal</h2>
+    <p>Ahora que tenemos tests de caracterización, extraemos la lógica de cálculo a una clase pura, sin efectos secundarios. Esta clase es trivialmente testeable.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso2_calculador.py — lógica de cálculo extraída y testeada</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from dataclasses import dataclass
+from typing import Literal
+import pytest
+
+
+ItemTipo = Literal["fisico", "digital"]
+
+
+@dataclass
+class Item:
+    tipo: ItemTipo
+    qty: int
+    precio: float
+
+
+class CalculadorTotal:
+    """
+    Lógica pura de cálculo de totales.
+    Sin BD, sin email, sin efectos secundarios.
+    Complejidad ciclomática: 4 (radon: A)
+    """
+
+    DESCUENTO_BULK_QTY = 10
+    DESCUENTO_BULK_PCT = 0.05
+
+    def calcular(self, items: list[Item]) -> float:
+        total = 0.0
+        for item in items:
+            if item.tipo == "fisico" and item.qty > 0:
+                subtotal = item.precio * item.qty
+                if item.qty >= self.DESCUENTO_BULK_QTY:
+                    subtotal *= 1 - self.DESCUENTO_BULK_PCT
+                total += subtotal
+            elif item.tipo == "digital":
+                total += item.precio * item.qty
+        return round(total, 2)
+
+
+# ── Tests del CalculadorTotal — cero infraestructura ─────────────
+
+def test_item_fisico_calculo_basico():
+    c = CalculadorTotal()
+    assert c.calcular([Item("fisico", 2, 50.0)]) == 100.0
+
+
+def test_item_digital_siempre_precio_completo():
+    c = CalculadorTotal()
+    assert c.calcular([Item("digital", 3, 10.0)]) == 30.0
+
+
+def test_bulk_descuento_exactamente_10_unidades():
+    c = CalculadorTotal()
+    # 10 * 100 = 1000, descuento 5% = 50, total = 950
+    assert c.calcular([Item("fisico", 10, 100.0)]) == 950.0
+
+
+def test_bulk_descuento_no_aplica_con_9_unidades():
+    c = CalculadorTotal()
+    assert c.calcular([Item("fisico", 9, 100.0)]) == 900.0
+
+
+def test_tipo_desconocido_se_ignora():
+    c = CalculadorTotal()
+    items = [
+        Item("fisico", 1, 50.0),
+        # Simular tipo desconocido — creamos dataclass manual
+    ]
+    resultado = c.calcular(items)
+    assert resultado == 50.0
+
+
+def test_lista_vacia_devuelve_cero():
+    c = CalculadorTotal()
+    assert c.calcular([]) == 0.0
+
+
+def test_mezcla_fisicos_y_digitales():
+    c = CalculadorTotal()
+    items = [
+        Item("fisico", 2, 50.0),    # 100
+        Item("digital", 1, 20.0),   # 20
+    ]
+    assert c.calcular(items) == 120.0
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Paso 3 — Extraer AplicadorPromo</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso3_promo.py — política de descuentos extraída y testeada</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">import pytest
+
+
+class PromoInvalida(Exception):
+    pass
+
+
+class AplicadorPromo:
+    """
+    Aplica códigos promocionales a un total.
+    Pura lógica de negocio — testeable directamente.
+    """
+
+    CODIGOS_FIJOS = {
+        "VERANO20": ("porcentaje", 20, 50.0),   # (tipo, valor, min_compra)
+        "BIENVENIDA": ("fijo", 10, 0.0),
+    }
+
+    def aplicar(self, total: float, promo: str) -> float:
+        if promo in self.CODIGOS_FIJOS:
+            tipo, valor, min_compra = self.CODIGOS_FIJOS[promo]
+            if total < min_compra:
+                return total  # sin descuento por no llegar al mínimo
+            if tipo == "porcentaje":
+                return round(total * (1 - valor / 100), 2)
+            else:  # fijo
+                return max(0.0, round(total - valor, 2))
+
+        if promo.startswith("CUSTOM_"):
+            try:
+                pct = int(promo.split("_")[1])
+            except (IndexError, ValueError):
+                raise PromoInvalida(f"Formato inválido: {promo}")
+            if not 0 <= pct <= 100:
+                raise PromoInvalida(f"Porcentaje fuera de rango: {pct}")
+            return round(total * (1 - pct / 100), 2)
+
+        raise PromoInvalida(f"Código desconocido: {promo}")
+
+
+# ── Tests ─────────────────────────────────────────────────────────
+
+class TestVERAN020:
+    def test_aplica_20_pct_si_total_supera_minimo(self):
+        a = AplicadorPromo()
+        assert a.aplicar(100.0, "VERANO20") == 80.0
+
+    def test_no_aplica_si_total_bajo_minimo(self):
+        a = AplicadorPromo()
+        assert a.aplicar(30.0, "VERANO20") == 30.0  # < 50€ mínimo
+
+
+class TestBIENVENIDA:
+    def test_resta_10_euros(self):
+        a = AplicadorPromo()
+        assert a.aplicar(50.0, "BIENVENIDA") == 40.0
+
+    def test_nunca_produce_total_negativo(self):
+        a = AplicadorPromo()
+        assert a.aplicar(5.0, "BIENVENIDA") == 0.0
+
+
+class TestCUSTOM:
+    def test_custom_50_pct(self):
+        a = AplicadorPromo()
+        assert a.aplicar(100.0, "CUSTOM_50") == 50.0
+
+    def test_custom_formato_invalido_lanza_excepcion(self):
+        a = AplicadorPromo()
+        with pytest.raises(PromoInvalida):
+            a.aplicar(100.0, "CUSTOM_abc")
+
+    def test_codigo_desconocido_lanza_excepcion(self):
+        a = AplicadorPromo()
+        with pytest.raises(PromoInvalida, match="desconocido"):
+            a.aplicar(100.0, "CODIGO_INVENTADO")
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Paso 4 — El orquestador final refactorizado</h2>
+    <p>Con las piezas puras testeadas, el orquestador se reduce a composición. Sus tests solo verifican que llama a las partes correctas.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>paso4_orquestador.py — ServicioPedidos: cliente limpio y testeable</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from typing import Protocol
+from dataclasses import dataclass
+from unittest.mock import MagicMock
+import pytest
+
+
+@dataclass
+class Item:
+    tipo: str
+    qty: int
+    precio: float
+
+
+@dataclass
+class ResultadoPedido:
+    id: int
+    total: float
+    estado: str
+
+
+# Ports (interfaces) — definidos por el dominio
+class RepositorioPedidos(Protocol):
+    def guardar(self, uid: int, total: float) -> int: ...
+
+
+class NotificadorPedidos(Protocol):
+    def notificar_creacion(self, pedido_id: int, uid: int, total: float) -> None: ...
+
+
+# Dominio — orquestador limpio
+class ServicioPedidos:
+    def __init__(
+        self,
+        calculador: "CalculadorTotal",
+        aplicador_promo: "AplicadorPromo",
+        repo: RepositorioPedidos,
+        notificador: NotificadorPedidos,
+    ) -> None:
+        self._calculador = calculador
+        self._aplicador_promo = aplicador_promo
+        self._repo = repo
+        self._notificador = notificador
+
+    def crear_pedido(
+        self,
+        uid: int,
+        items: list[Item],
+        promo: str | None = None,
+    ) -> ResultadoPedido:
+        total = self._calculador.calcular(items)
+
+        if promo:
+            total = self._aplicador_promo.aplicar(total, promo)
+
+        pedido_id = self._repo.guardar(uid, total)
+        self._notificador.notificar_creacion(pedido_id, uid, total)
+
+        return ResultadoPedido(id=pedido_id, total=total, estado="pendiente")
+
+
+# ── Tests del orquestador — solo verifican composición ───────────
+
+@pytest.fixture
+def deps():
+    calculador = MagicMock()
+    calculador.calcular.return_value = 100.0
+
+    aplicador = MagicMock()
+    aplicador.aplicar.return_value = 80.0
+
+    repo = MagicMock(spec=RepositorioPedidos)
+    repo.guardar.return_value = 42
+
+    notificador = MagicMock(spec=NotificadorPedidos)
+
+    return calculador, aplicador, repo, notificador
+
+
+def test_crear_pedido_devuelve_resultado_correcto(deps):
+    calculador, aplicador, repo, notificador = deps
+    servicio = ServicioPedidos(calculador, aplicador, repo, notificador)
+
+    resultado = servicio.crear_pedido(
+        uid=1,
+        items=[Item("fisico", 2, 50.0)],
+        promo="VERANO20",
+    )
+
+    assert resultado.id == 42
+    assert resultado.total == 80.0  # valor que devuelve el mock del aplicador
+    assert resultado.estado == "pendiente"
+
+
+def test_crear_pedido_sin_promo_no_llama_aplicador(deps):
+    calculador, aplicador, repo, notificador = deps
+    servicio = ServicioPedidos(calculador, aplicador, repo, notificador)
+
+    servicio.crear_pedido(uid=1, items=[Item("fisico", 2, 50.0)])
+
+    aplicador.aplicar.assert_not_called()
+
+
+def test_crear_pedido_notifica_con_datos_correctos(deps):
+    calculador, aplicador, repo, notificador = deps
+    servicio = ServicioPedidos(calculador, aplicador, repo, notificador)
+
+    servicio.crear_pedido(uid=7, items=[Item("fisico", 1, 100.0)])
+
+    notificador.notificar_creacion.assert_called_once_with(42, 7, 100.0)
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Resultado final: qué ganamos con el refactor</h2>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th></th><th>Código legacy</th><th>Después del refactor</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Complejidad ciclomática</strong></td>
+          <td>12 (una función) — radon: D</td>
+          <td>CalculadorTotal: 4 / AplicadorPromo: 5 / Orquestador: 2 — radon: A</td>
+        </tr>
+        <tr>
+          <td><strong>Tests</strong></td>
+          <td>0</td>
+          <td>20+ tests unitarios, todos sin infraestructura</td>
+        </tr>
+        <tr>
+          <td><strong>Cobertura</strong></td>
+          <td>0%</td>
+          <td>&gt;95% — incluyendo branch coverage</td>
+        </tr>
+        <tr>
+          <td><strong>Tiempo de ejecución de tests</strong></td>
+          <td>No aplica</td>
+          <td>&lt;100ms — todo en memoria, sin BD ni SMTP</td>
+        </tr>
+        <tr>
+          <td><strong>Para añadir nuevo código promo</strong></td>
+          <td>Modificar la función de 80 líneas y rezar</td>
+          <td>Añadir entrada en <code>CODIGOS_FIJOS</code> + 3 tests</td>
+        </tr>
+        <tr>
+          <td><strong>Para cambiar de SMTP a Slack</strong></td>
+          <td>Reescribir la función, romper todo</td>
+          <td>Implementar <code>NotificadorSlack</code> con el Protocol</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="diagram-block">
+<pre>
+El proceso de refactoring con TDD — en 4 pasos siempre:
+
+  1. CHARACTERIZE    → tests que describen el comportamiento actual
+                        (con patch para sobrevivir al código legacy)
+
+  2. EXTRACT         → extraer lógica pura a clases testables directamente
+                        (CalculadorTotal, AplicadorPromo)
+
+  3. TEST PURE       → tests unitarios de las clases puras
+                        (cero infraestructura, cero mocks complejos)
+
+  4. COMPOSE         → orquestador que une las piezas vía Protocol
+                        (tests de comportamiento con Mocks del orquestador)
+
+En ningún momento rompiste el comportamiento existente.
+Los characterization tests validan que la refactorización es equivalente.
+</pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Este lab resume el curso completo: el <strong>Cap 2</strong> te dio las métricas para detectar el problema (CC=12, SRP violado). El <strong>Cap 3</strong> te dio el proceso (Red-Green-Refactor). El <strong>Cap 4</strong> te dio el diseño (Protocol, inyección). Los <strong>Cap 5-9</strong> te dieron las herramientas (fixtures, mocks, characterization). El <strong>Cap 10</strong> garantiza que el pipeline refuerza este estándar automáticamente en cada commit.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m7_cap10_git_hooks.html" class="chapter-nav-btn">← Cap 10 · Git hooks</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="apendice_referencia.html" class="chapter-nav-btn">Apéndice · Referencia →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

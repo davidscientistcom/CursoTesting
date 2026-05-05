@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Apéndice — Referencia rápida | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+<style>
+.ref-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.2rem;
+  margin: 1.5rem 0;
+}
+.ref-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+}
+.ref-card h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.6rem;
+}
+.ref-card code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: block;
+  line-height: 1.8;
+}
+.ref-card code strong {
+  color: var(--green);
+}
+.cheatsheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 1rem 0;
+}
+.cheatsheet-table th {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 0.5rem 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.cheatsheet-table td {
+  padding: 0.45rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.cheatsheet-table tr:hover td {
+  background: var(--bg-card);
+}
+</style>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li class="active"><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Apéndice</div>
+    <h1 class="page-header-title">Referencia rápida</h1>
+    <p class="page-header-sub">cheatsheet completo del curso · comandos · API de mocks · strategies de Hypothesis · SOLID quick-ref</p>
+  </div>
+
+  <section>
+    <h2>pytest — comandos esenciales</h2>
+    <table class="cheatsheet-table">
+      <thead>
+        <tr><th>Comando</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>pytest</td><td>Ejecutar todos los tests</td></tr>
+        <tr><td>pytest -v</td><td>Verbose — nombre de cada test</td></tr>
+        <tr><td>pytest -x</td><td>Parar al primer fallo</td></tr>
+        <tr><td>pytest --lf</td><td>Solo los tests que fallaron en el último run</td></tr>
+        <tr><td>pytest --ff</td><td>Tests fallidos primero, luego el resto</td></tr>
+        <tr><td>pytest -k "auth"</td><td>Solo tests cuyo nombre contiene "auth"</td></tr>
+        <tr><td>pytest -m unit</td><td>Solo tests con la marca @pytest.mark.unit</td></tr>
+        <tr><td>pytest -m "not slow"</td><td>Excluir tests con la marca @pytest.mark.slow</td></tr>
+        <tr><td>pytest --tb=short</td><td>Traceback corto en fallos</td></tr>
+        <tr><td>pytest -s</td><td>No capturar stdout (ver print())</td></tr>
+        <tr><td>pytest -n auto</td><td>Paralelismo automático (pytest-xdist)</td></tr>
+        <tr><td>pytest --durations=10</td><td>Mostrar los 10 tests más lentos</td></tr>
+        <tr><td>pytest --cov=src --cov-report=term-missing</td><td>Coverage con líneas no cubiertas</td></tr>
+        <tr><td>pytest --cov-fail-under=80</td><td>Falla si cobertura &lt; 80%</td></tr>
+        <tr><td>pytest --cov-branch</td><td>Branch coverage además de line coverage</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Decoradores y fixtures — referencia</h2>
+
+    <div class="ref-grid">
+      <div class="ref-card">
+        <h4>Decoradores de test</h4>
+        <code>
+          <strong>@pytest.mark.skip(reason="...")</strong> — siempre salta<br/>
+          <strong>@pytest.mark.skipif(cond, reason=)</strong> — salta si condición<br/>
+          <strong>@pytest.mark.xfail(reason=)</strong> — fallo esperado<br/>
+          <strong>@pytest.mark.parametrize("x,y", [...])</strong> — múltiples casos<br/>
+          <strong>@pytest.mark.timeout(5)</strong> — mata si tarda &gt;5s<br/>
+          <strong>@pytest.mark.asyncio</strong> — test async (pytest-asyncio)<br/>
+          <strong>@freeze_time("2024-01-15")</strong> — congelar tiempo (freezegun)
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Fixtures — opciones</h4>
+        <code>
+          <strong>@pytest.fixture</strong> — scope="function" (una por test)<br/>
+          <strong>@pytest.fixture(scope="module")</strong> — una por fichero<br/>
+          <strong>@pytest.fixture(scope="session")</strong> — una por ejecución<br/>
+          <strong>@pytest.fixture(autouse=True)</strong> — aplica sin nombre<br/>
+          <strong>yield</strong> — código antes=setup, después=teardown<br/>
+          <strong>request.param</strong> — acceder al parámetro en fixture<br/>
+          <strong>@pytest.fixture(params=[...])</strong> — fixture parametrizada
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Assertions especiales</h4>
+        <code>
+          <strong>pytest.raises(ExcType)</strong> — verificar excepción<br/>
+          <strong>pytest.raises(ExcType, match="...")</strong> — + mensaje<br/>
+          <strong>exc_info.value.atributo</strong> — acceder a la excepción<br/>
+          <strong>pytest.approx(0.1 + 0.2)</strong> — float con tolerancia<br/>
+          <strong>assert x is None</strong> — identidad (no == None)<br/>
+          <strong>assert x is True/False</strong> — identidad booleana<br/>
+          <strong>assert x in coleccion</strong> — pertenencia
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>conftest.py — dónde va cada cosa</h4>
+        <code>
+          tests/conftest.py → fixtures de toda la suite<br/>
+          tests/unit/conftest.py → solo para tests unitarios<br/>
+          tests/integration/conftest.py → solo para integración<br/>
+          <br/>
+          No se importan: pytest los descubre automáticamente.<br/>
+          Las fixtures de un conftest padre son accesibles<br/>
+          desde todos los subdirectorios.
+        </code>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>unittest.mock — API completa</h2>
+    <table class="cheatsheet-table">
+      <thead>
+        <tr><th>Método / atributo</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>MagicMock(spec=ClaseReal)</td><td>Mock que respeta la interfaz de ClaseReal</td></tr>
+        <tr><td>mock.metodo.return_value = x</td><td>Qué devuelve metodo() cuando se llama</td></tr>
+        <tr><td>mock.metodo.side_effect = exc</td><td>Lanza la excepción cuando se llama</td></tr>
+        <tr><td>mock.metodo.side_effect = [a, b, c]</td><td>Devuelve a, b, c en llamadas sucesivas</td></tr>
+        <tr><td>mock.metodo.side_effect = fn</td><td>Llama fn con los mismos argumentos</td></tr>
+        <tr><td>mock.metodo.call_count</td><td>Número de veces que se llamó</td></tr>
+        <tr><td>mock.metodo.called</td><td>True si se llamó al menos una vez</td></tr>
+        <tr><td>mock.metodo.call_args</td><td>Argumentos de la última llamada</td></tr>
+        <tr><td>mock.metodo.call_args_list</td><td>Lista de todas las llamadas</td></tr>
+        <tr><td>mock.metodo.assert_called()</td><td>Falla si no se llamó</td></tr>
+        <tr><td>mock.metodo.assert_called_once()</td><td>Falla si no se llamó exactamente 1 vez</td></tr>
+        <tr><td>mock.metodo.assert_called_with(a, b)</td><td>Falla si última llamada no fue con a, b</td></tr>
+        <tr><td>mock.metodo.assert_called_once_with(a, b)</td><td>Combina once + with</td></tr>
+        <tr><td>mock.metodo.assert_not_called()</td><td>Falla si se llamó alguna vez</td></tr>
+        <tr><td>mock.reset_mock()</td><td>Resetea historial de llamadas</td></tr>
+        <tr><td>patch("modulo.Clase")</td><td>Reemplaza Clase en modulo durante el test</td></tr>
+        <tr><td>patch.object(obj, "metodo")</td><td>Reemplaza solo un método de un objeto real</td></tr>
+        <tr><td>MagicMock(wraps=obj_real)</td><td>Spy: ejecuta código real y registra llamadas</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Hypothesis — strategies de referencia</h2>
+
+    <div class="ref-grid">
+      <div class="ref-card">
+        <h4>Tipos básicos</h4>
+        <code>
+          st.integers()<br/>
+          st.integers(min_value=0, max_value=100)<br/>
+          st.floats(allow_nan=False, allow_infinity=False)<br/>
+          st.decimals(min_value="0", max_value="100", places=2)<br/>
+          st.text()<br/>
+          st.text(min_size=1, max_size=50)<br/>
+          st.binary()<br/>
+          st.booleans()<br/>
+          st.none()<br/>
+          st.emails()<br/>
+          st.from_regex(r"\d{4}-\d{2}-\d{2}")
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Colecciones</h4>
+        <code>
+          st.lists(st.integers())<br/>
+          st.lists(st.integers(), min_size=1, max_size=10)<br/>
+          st.sets(st.integers())<br/>
+          st.frozensets(st.integers())<br/>
+          st.tuples(st.integers(), st.text())<br/>
+          st.dictionaries(st.text(), st.integers())<br/>
+          st.one_of(st.integers(), st.text())<br/>
+          st.integers() | st.text()  # equivalente a one_of<br/>
+          st.just(42)  # siempre el mismo valor<br/>
+          st.sampled_from([1, 2, 3])  # uno de la lista
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Objetos y builds</h4>
+        <code>
+          from hypothesis.strategies import builds<br/>
+          <br/>
+          builds(MiClase, campo=st.integers())<br/>
+          <br/>
+          # st.from_type usa las anotaciones de tipo<br/>
+          st.from_type(MiDataclass)<br/>
+          <br/>
+          # Composite: combinar estrategias<br/>
+          @st.composite<br/>
+          def mi_strategy(draw):<br/>
+          &nbsp;&nbsp;n = draw(st.integers(min_value=1))<br/>
+          &nbsp;&nbsp;return [draw(st.integers())] * n
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Decoradores y settings</h4>
+        <code>
+          @given(st.integers())<br/>
+          @given(a=st.integers(), b=st.text())<br/>
+          <br/>
+          assume(b != 0)  # descartar inputs inválidos<br/>
+          <br/>
+          from hypothesis import settings<br/>
+          @settings(max_examples=500)  # más ejemplos<br/>
+          @settings(deadline=None)  # sin límite de tiempo<br/>
+          <br/>
+          # Base de datos de ejemplos fallados:<br/>
+          # .hypothesis/examples/
+        </code>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Herramientas — comandos de referencia</h2>
+
+    <table class="cheatsheet-table">
+      <thead>
+        <tr><th>Herramienta</th><th>Comando</th><th>Descripción</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ruff</td><td>ruff check .</td><td>Lint del proyecto</td></tr>
+        <tr><td>ruff</td><td>ruff check --fix .</td><td>Lint y corrección automática</td></tr>
+        <tr><td>ruff</td><td>ruff format .</td><td>Formatear código</td></tr>
+        <tr><td>ruff</td><td>ruff format --check .</td><td>Verificar formato (CI)</td></tr>
+        <tr><td>mypy</td><td>mypy src/</td><td>Type checking</td></tr>
+        <tr><td>mypy</td><td>mypy --strict src/</td><td>Type checking estricto</td></tr>
+        <tr><td>bandit</td><td>bandit -r src/ -ll</td><td>Solo HIGH y MEDIUM</td></tr>
+        <tr><td>bandit</td><td>bandit -r src/ -f json -o report.json</td><td>Reporte JSON para CI</td></tr>
+        <tr><td>radon</td><td>radon cc src/ -s</td><td>Complejidad ciclomática</td></tr>
+        <tr><td>radon</td><td>radon cc src/ -nb</td><td>Solo funciones con CC &gt; B</td></tr>
+        <tr><td>radon</td><td>radon mi src/ -s</td><td>Índice de mantenibilidad</td></tr>
+        <tr><td>coverage</td><td>coverage report --show-missing</td><td>Informe con líneas no cubiertas</td></tr>
+        <tr><td>coverage</td><td>coverage html</td><td>Informe HTML navegable</td></tr>
+        <tr><td>pre-commit</td><td>pre-commit install</td><td>Instalar hooks en repositorio local</td></tr>
+        <tr><td>pre-commit</td><td>pre-commit run --all-files</td><td>Ejecutar sobre todos los ficheros</td></tr>
+        <tr><td>pre-commit</td><td>pre-commit autoupdate</td><td>Actualizar versiones de hooks</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>SOLID — resumen ejecutivo</h2>
+
+    <table class="cheatsheet-table">
+      <thead>
+        <tr><th>Principio</th><th>En una línea</th><th>Señal de violación en tests</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>S</strong> — SRP</td>
+          <td>Una clase, una razón para cambiar</td>
+          <td>Necesitas levantar infraestructura para testear lógica pura</td>
+        </tr>
+        <tr>
+          <td><strong>O</strong> — OCP</td>
+          <td>Abierto a extensión, cerrado a modificación</td>
+          <td>Añadir un caso nuevo rompe tests existentes</td>
+        </tr>
+        <tr>
+          <td><strong>L</strong> — LSP</td>
+          <td>Los subtipos son sustituibles por el tipo base</td>
+          <td>La misma suite de tests falla para algunas implementaciones del Protocol</td>
+        </tr>
+        <tr>
+          <td><strong>I</strong> — ISP</td>
+          <td>Interfaces pequeñas y focalizadas</td>
+          <td>El Mock necesita implementar métodos que el test no usa</td>
+        </tr>
+        <tr>
+          <td><strong>D</strong> — DIP</td>
+          <td>Depender de abstracciones, no de detalles</td>
+          <td>No puedes inyectar un mock — la dependencia está hard-coded</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Checklist de calidad por tipo</h2>
+
+    <div class="ref-grid">
+      <div class="ref-card">
+        <h4>Integers / floats — qué testear siempre</h4>
+        <code>
+          Valor nominal (caso típico)<br/>
+          Cero<br/>
+          Negativo (si aplica / si debe fallar)<br/>
+          Mínimo del dominio<br/>
+          Máximo del dominio<br/>
+          Valor en el límite exacto (&plusmn;1 del umbral)<br/>
+          None (si el tipo es Optional)<br/>
+          Precisión flotante (usar pytest.approx)
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Strings — qué testear siempre</h4>
+        <code>
+          Valor nominal<br/>
+          Cadena vacía ""<br/>
+          Solo espacios "   "<br/>
+          Espacios al inicio y fin "  valor  "<br/>
+          Mayúsculas / minúsculas<br/>
+          Caracteres unicode<br/>
+          Longitud mínima y máxima<br/>
+          None (si Optional)
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Listas — qué testear siempre</h4>
+        <code>
+          Lista vacía []<br/>
+          Un solo elemento<br/>
+          Elemento duplicado<br/>
+          Lista desordenada (si el orden importa)<br/>
+          Lista ya ordenada<br/>
+          Todos los elementos iguales<br/>
+          Lista muy larga (Hypothesis)<br/>
+          None (si Optional)
+        </code>
+      </div>
+      <div class="ref-card">
+        <h4>Excepciones — qué verificar siempre</h4>
+        <code>
+          Tipo exacto (no solo Exception)<br/>
+          Mensaje con match="texto clave"<br/>
+          Atributos de la excepción si los tiene<br/>
+          Estado del objeto NO cambió tras el error<br/>
+          No se lanza en el caso válido<br/>
+          Se lanza con el input mínimo incorrecto
+        </code>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>El pipeline de calidad en una pantalla</h2>
+
+    <div class="diagram-block">
+<pre>
+  Herramienta       Fase              Tiempo   Bloquea
+  ─────────────────────────────────────────────────────────────
+  ruff format       pre-commit        &lt;2s      Commit local
+  ruff check        pre-commit        &lt;3s      Commit local
+  mypy              pre-commit + CI   5-30s    Commit + PR
+  bandit            pre-commit + CI   3-10s    Commit + PR
+  pytest (unit)     pre-commit        5-30s    Commit local
+  pytest (completo) CI                1-4 min  PR merge
+  coverage ≥80%     CI                +0s      PR merge
+  pytest (integr.)  CI (servicios)    2-10 min PR merge
+
+  Stack mínimo para empezar:
+    pip install pytest pytest-cov pytest-mock ruff mypy bandit pre-commit
+
+  Ficheros de configuración:
+    pyproject.toml        → ruff, mypy, pytest, coverage
+    .pre-commit-config.yaml → hooks de calidad
+    .github/workflows/ci.yml → CI en GitHub Actions
+</pre>
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m8_cap11_lab_refactor.html" class="chapter-nav-btn">← Cap 11 · Lab refactoring</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

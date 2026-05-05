@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 10 — Git hooks y automatización | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li class="active"><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 7 — Automatización · Capítulo 10</div>
+    <h1 class="page-header-title">Git hooks y automatización</h1>
+    <p class="page-header-sub">pre-commit · hooks nativos de git · pipeline ruff + mypy + pytest + coverage · GitHub Actions</p>
+  </div>
+
+  <section>
+    <h2>Por qué automatizar — el problema del "lo haré manualmente"</h2>
+    <p>La calidad manual no escala. Cada vez que alguien olvida ejecutar el linter, o hace un commit sin pasar los tests, la deuda técnica crece silenciosamente. <strong>Los git hooks convierten las comprobaciones de calidad en inevitables</strong>: no puedes hacer commit si algo falla.</p>
+
+    <div class="diagram-block">
+<pre>
+Sin automatización:          Con git hooks + CI:
+────────────────────         ──────────────────────────────────────
+Developer escribe código     Developer escribe código
+      ↓                            ↓
+git commit (sin checks)      git commit
+      ↓                            ↓
+push al repo                 pre-commit hook ejecuta (local, &lt;10s):
+      ↓                            ruff format + ruff check
+CI falla 5 minutos después         mypy (rápido)
+      ↓                            pytest -m "not slow"
+Developer vuelve al                ↓ (si todo pasa → commit creado)
+contexto anterior           push al repo
+      ↓                            ↓
+Fix rápido que introduce     CI completo ejecuta (&lt;4min):
+otro bug                           pytest completo + coverage
+      ↓                            bandit
+Ciclo de deuda técnica             ↓ (si todo pasa → merge habilitado)
+                             Deploy seguro
+</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Git hooks nativos — el enfoque manual</h2>
+    <p>Git ejecuta scripts en <code>.git/hooks/</code> en respuesta a eventos. No se versionan con el repositorio (por eso pre-commit framework es mejor para equipos).</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>.git/hooks/pre-commit — hook nativo (sin framework)</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>#!/bin/bash
+# .git/hooks/pre-commit
+# Hacer ejecutable: chmod +x .git/hooks/pre-commit
+
+set -e
+
+echo "--- pre-commit: verificando calidad ---"
+
+# 1. Formato
+ruff format --check .
+if [ $? -ne 0 ]; then
+    echo "ERROR: código no formateado. Ejecuta: ruff format ."
+    exit 1
+fi
+
+# 2. Linting
+ruff check .
+if [ $? -ne 0 ]; then
+    echo "ERROR: problemas de linting. Ejecuta: ruff check --fix ."
+    exit 1
+fi
+
+# 3. Tests rápidos (excluir tests lentos y de integración)
+pytest -m "not slow and not integration" -q
+if [ $? -ne 0 ]; then
+    echo "ERROR: tests fallando."
+    exit 1
+fi
+
+echo "--- pre-commit: OK ---"
+exit 0
+</code></pre>
+    </div>
+
+    <div class="info-box warn">
+      <span class="info-box-label">WARN</span>
+      Los hooks en <code>.git/hooks/</code> no se versionan ni se comparten con el equipo. Cada developer tiene que instalarlos manualmente. Para equipos, usa <strong>pre-commit framework</strong> que sí se versiona en <code>.pre-commit-config.yaml</code>.
+    </div>
+  </section>
+
+  <section>
+    <h2>pre-commit framework — la forma correcta para equipos</h2>
+    <p><code>pre-commit</code> gestiona hooks como dependencias del proyecto: se configuran en <code>.pre-commit-config.yaml</code>, se instalan con un comando y se aplican a todos los miembros del equipo de forma idéntica.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>instalacion_precommit.sh — setup inicial en un proyecto</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">pip install pre-commit
+
+# Instalar los hooks en el repositorio local
+pre-commit install
+
+# Ejecutar manualmente sobre todos los ficheros (primera vez o CI)
+pre-commit run --all-files
+
+# Ejecutar solo sobre los ficheros staged (es lo que hace el hook)
+pre-commit run
+
+# Actualizar todas las versiones de hooks a las últimas
+pre-commit autoupdate
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>.pre-commit-config.yaml — configuración completa para Python</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">repos:
+  # ── Hooks básicos de git ─────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace           # elimina espacios al final de línea
+      - id: end-of-file-fixer             # asegura newline al final del fichero
+      - id: check-yaml                    # valida sintaxis YAML
+      - id: check-toml                    # valida sintaxis TOML
+      - id: check-merge-conflict          # detecta marcas de conflicto de merge
+      - id: check-added-large-files       # bloquea ficheros > 1MB
+        args: ["--maxkb=1024"]
+      - id: no-commit-to-branch           # impide commits directos a main/master
+        args: ["--branch", "main", "--branch", "master"]
+
+  # ── ruff: linting + formato ──────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # ── mypy: type checking ──────────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests, types-PyYAML]
+        args: [--strict, --ignore-missing-imports]
+        files: ^src/
+
+  # ── bandit: seguridad (solo en src, no en tests) ─────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        args: [-r, --skip, "B101", -ll]   # B101: assert (ok en tests)
+        files: ^src/
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>hook_personalizado.py — añadir pytest al pre-commit hook</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code"># .pre-commit-config.yaml — añadir hook local de pytest
+# (los hooks locales se definen en el mismo repo)
+
+repos:
+  # ... otros repos ...
+
+  # ── Hook local: pytest rápido ────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest (unit tests rápidos)
+        entry: pytest
+        language: system
+        args:
+          - -m
+          - "not slow and not integration"
+          - -q
+          - --tb=short
+        pass_filenames: false
+        always_run: true
+
+      - id: pytest-with-coverage
+        name: pytest + coverage gate
+        entry: pytest
+        language: system
+        args:
+          - --cov=src
+          - --cov-fail-under=80
+          - --cov-branch
+          - -q
+          - --tb=short
+        pass_filenames: false
+        # Solo en commit a ramas de feature (no en cada cambio pequeño)
+        stages: [push]
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Pipeline completo con GitHub Actions</h2>
+    <p>Los hooks locales son la primera línea de defensa. El CI es la segunda: se ejecuta en todos los pushes y Pull Requests, en un entorno limpio y reproducible.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>.github/workflows/ci.yml — pipeline completo de CI</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  quality:
+    name: "Quality checks"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint and format check (ruff)
+        run: |
+          ruff format --check src/ tests/
+          ruff check src/ tests/
+
+      - name: Type checking (mypy)
+        run: mypy src/ --strict --ignore-missing-imports
+
+      - name: Security scan (bandit)
+        run: bandit -r src/ --exclude tests/ -ll
+
+  tests:
+    name: "Tests + Coverage"
+    runs-on: ubuntu-latest
+    needs: quality     # Solo ejecuta si quality pasa
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Run tests with coverage
+        run: |
+          pytest \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-branch \
+            --cov-fail-under=80 \
+            -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  integration:
+    name: "Integration tests"
+    runs-on: ubuntu-latest
+    needs: tests
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run integration tests
+        env:
+          DATABASE_URL: "postgresql://postgres:testpass@localhost:5432/testdb"
+        run: pytest -m integration -v
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Resumen: el pipeline completo de calidad</h2>
+
+    <div class="diagram-block">
+<pre>
+Herramienta          Cuándo             Qué verifica              Fallo bloquea
+─────────────────────────────────────────────────────────────────────────────────
+ruff format          pre-commit         Formato consistente        Commit local
+ruff check           pre-commit         Linting, imports, bugs     Commit local
+mypy                 pre-commit + CI    Tipos estáticos            Commit + PR
+bandit               pre-commit + CI    Vulnerabilidades           Commit + PR
+pytest (unit fast)   pre-commit         Tests rápidos sin infra    Commit local
+pytest (completo)    CI                 Tests completos            PR merge
+pytest-cov ≥80%      CI                 Gate de cobertura          PR merge
+pytest (integration) CI (con servicios) Contratos entre capas      PR merge
+</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>requirements-dev.txt — dependencias de desarrollo</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code"># Herramientas de testing
+pytest>=8.0
+pytest-cov>=5.0
+pytest-mock>=3.14
+pytest-asyncio>=0.23
+pytest-xdist>=3.5
+freezegun>=1.4
+hypothesis>=6.100
+
+# Calidad de código
+ruff>=0.4
+mypy>=1.10
+
+# Seguridad
+bandit>=1.7
+
+# pre-commit
+pre-commit>=3.7
+
+# Type stubs (para mypy)
+types-requests
+types-PyYAML
+types-freezegun
+</code></pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Una vez que el pipeline está en pie, la disciplina es gratuita: no necesitas acordarte de ejecutar nada. El equipo puede moverse rápido porque los hooks y el CI actúan como red de seguridad automática. La inversión inicial (2-4 horas de setup) se recupera en el primer bug que atrapa antes de llegar a producción.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m6_cap9_mocks.html" class="chapter-nav-btn">← Cap 9 · Mocks</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m8_cap11_lab_refactor.html" class="chapter-nav-btn">Cap 11 · Lab refactoring →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

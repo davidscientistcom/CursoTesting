@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 5 — pytest en profundidad | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li class="active"><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 4 — Herramientas · Capítulo 5</div>
+    <h1 class="page-header-title">pytest en profundidad</h1>
+    <p class="page-header-sub">fixtures · parametrize · marcas · conftest · plugins esenciales · pytest.ini</p>
+  </div>
+
+  <section>
+    <h2>Por qué pytest y no unittest</h2>
+    <p>Python incluye <code>unittest</code> en la librería estándar, pero el ecosistema industrial usa <code>pytest</code>. No es dogma — hay razones concretas:</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th></th><th>pytest</th><th>unittest</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Sintaxis</strong></td>
+          <td><code>assert x == y</code> — Python nativo, mensajes de error detallados automáticos</td>
+          <td><code>self.assertEqual(x, y)</code> — verboso, herencia de clase obligatoria</td>
+        </tr>
+        <tr>
+          <td><strong>Fixtures</strong></td>
+          <td>Inyección por nombre, composables, con scope configurable</td>
+          <td><code>setUp/tearDown</code> por clase, no composables</td>
+        </tr>
+        <tr>
+          <td><strong>Parametrización</strong></td>
+          <td><code>@pytest.mark.parametrize</code> directamente sobre la función</td>
+          <td>Requiere plugins externos o bucles manuales</td>
+        </tr>
+        <tr>
+          <td><strong>Plugins</strong></td>
+          <td>Ecosistema de &gt;1500 plugins (coverage, asyncio, django, xdist…)</td>
+          <td>Ecosistema pequeño</td>
+        </tr>
+        <tr>
+          <td><strong>Compatibilidad</strong></td>
+          <td>Ejecuta también tests de unittest — migración incremental posible</td>
+          <td>Solo unittest</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>instalacion.sh — setup inicial de pytest en un proyecto</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># Instalación mínima
+pip install pytest
+
+# Stack recomendado para producción
+pip install pytest pytest-cov pytest-asyncio pytest-xdist
+
+# Verificar instalación
+pytest --version
+# pytest 8.x.x
+
+# Ejecutar todos los tests
+pytest
+
+# Verbose — ver nombre de cada test
+pytest -v
+
+# Solo tests fallidos del último run
+pytest --lf
+
+# Parar al primer fallo
+pytest -x
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fixtures — el corazón de pytest</h2>
+    <p>Las fixtures son funciones que <strong>proveen contexto a los tests: objetos, conexiones, datos, configuración</strong>. La diferencia con <code>setUp</code>: las fixtures son modulares, composables y con lifecycle controlado por <code>scope</code>.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>fixtures_basicas.py — fixture simple, yield para teardown</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from dataclasses import dataclass, field
+
+
+@dataclass
+class BaseDeDatosEnMemoria:
+    """Simula una BD para tests."""
+    _datos: dict = field(default_factory=dict)
+
+    def insertar(self, tabla: str, registro: dict) -> None:
+        self._datos.setdefault(tabla, []).append(registro)
+
+    def consultar(self, tabla: str) -> list:
+        return self._datos.get(tabla, [])
+
+    def limpiar(self) -> None:
+        self._datos.clear()
+
+
+# Fixture básica — se crea para cada test (scope="function" por defecto)
+@pytest.fixture
+def db():
+    base = BaseDeDatosEnMemoria()
+    yield base  # código antes del yield = setup, después = teardown
+    base.limpiar()  # se ejecuta después de cada test, pase o falle
+
+
+# Las fixtures se inyectan por nombre en la firma del test
+def test_insertar_registro(db):
+    db.insertar("usuarios", {"id": 1, "nombre": "Ana"})
+    resultado = db.consultar("usuarios")
+    assert len(resultado) == 1
+    assert resultado[0]["nombre"] == "Ana"
+
+
+def test_bd_empieza_limpia_en_cada_test(db):
+    """Este test no ve los datos del test anterior — cada uno recibe su propia fixture."""
+    resultado = db.consultar("usuarios")
+    assert resultado == []
+
+
+# Fixture con parámetros — puede recibir otras fixtures
+@pytest.fixture
+def db_con_usuarios(db):
+    """Fixture de alto nivel que depende de otra fixture."""
+    db.insertar("usuarios", {"id": 1, "nombre": "Ana"})
+    db.insertar("usuarios", {"id": 2, "nombre": "Bob"})
+    return db
+
+
+def test_hay_dos_usuarios(db_con_usuarios):
+    usuarios = db_con_usuarios.consultar("usuarios")
+    assert len(usuarios) == 2
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>fixtures_scope.py — scope de fixture: cuándo se crea y destruye</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+
+
+# scope="function" (default): una instancia por test
+@pytest.fixture
+def conexion_funcion():
+    print("  [OPEN function-scope]")
+    yield {"conexion": "function"}
+    print("  [CLOSE function-scope]")
+
+
+# scope="module": una instancia compartida por todo el módulo/fichero
+@pytest.fixture(scope="module")
+def conexion_modulo():
+    print("  [OPEN module-scope]")
+    yield {"conexion": "module"}
+    print("  [CLOSE module-scope]")
+
+
+# scope="session": una instancia por toda la ejecución de pytest (todos los ficheros)
+@pytest.fixture(scope="session")
+def servidor_externo():
+    """Útil para levantar un servidor de test una sola vez."""
+    print("  [START server]")
+    yield {"url": "http://localhost:8765"}
+    print("  [STOP server]")
+
+
+# ── Cuándo usar cada scope ─────────────────────────────────────────
+# function  → datos mutables que no deben compartirse entre tests (la mayoría)
+# module    → recursos caros pero que no se modifican (schemas, configuración)
+# session   → recursos muy caros de levantar (servidores, conexiones externas reales)
+
+def test_a(conexion_funcion):
+    assert conexion_funcion["conexion"] == "function"
+
+def test_b(conexion_funcion):
+    # Recibe UNA NUEVA instancia — test_a no puede haberla contaminado
+    assert conexion_funcion["conexion"] == "function"
+</code></pre>
+    </div>
+
+    <div class="info-box warn">
+      <span class="info-box-label">WARN</span>
+      <code>scope="session"</code> con fixtures mutables es una fuente clásica de tests que solo fallan en ciertas órdenes. Si la fixture tiene estado que los tests modifican, usa <code>scope="function"</code>. Si es costosa de crear y es de solo lectura (schema de BD, configuración SSL), entonces <code>scope="session"</code> es apropiado.
+    </div>
+  </section>
+
+  <section>
+    <h2>parametrize — eliminar duplicación en tests</h2>
+    <p><code>@pytest.mark.parametrize</code> ejecuta el mismo test con múltiples conjuntos de datos. Resultado: N casos de prueba con 1 función. Esencial para testear casos borde sin duplicar código.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>parametrize_basico.py — misma lógica, múltiples entradas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+
+
+def es_palindromo(texto: str) -> bool:
+    t = texto.lower().replace(" ", "")
+    return t == t[::-1]
+
+
+# SIN parametrize — repetición, difícil de mantener
+def test_radar_es_palindromo():
+    assert es_palindromo("radar") is True
+
+def test_hola_no_es_palindromo():
+    assert es_palindromo("hola") is False
+
+
+# CON parametrize — limpio, extensible, cada caso tiene su propio nombre
+@pytest.mark.parametrize("texto,esperado", [
+    ("radar",              True),
+    ("Amo la paloma",      True),   # case-insensitive + espacios
+    ("hola",              False),
+    ("",                   True),   # vacío es palíndromo trivial
+    ("A",                  True),   # un solo carácter
+    ("ab",                False),
+])
+def test_es_palindromo(texto, esperado):
+    assert es_palindromo(texto) == esperado
+
+
+# ── parametrize con IDs personalizados ───────────────────────────
+@pytest.mark.parametrize("numero,primo", [
+    pytest.param(2,  True,  id="dos-es-primo"),
+    pytest.param(17, True,  id="diecisiete-es-primo"),
+    pytest.param(4,  False, id="cuatro-no-es-primo"),
+    pytest.param(1,  False, id="uno-no-es-primo"),
+    pytest.param(0,  False, id="cero-no-es-primo"),
+])
+def test_es_primo(numero, primo):
+    def _es_primo(n):
+        if n < 2:
+            return False
+        return all(n % i != 0 for i in range(2, int(n**0.5) + 1))
+
+    assert _es_primo(numero) == primo
+
+
+# ── parametrize combinatorio (producto cartesiano) ──────────────
+@pytest.mark.parametrize("base", [2, 8, 16])
+@pytest.mark.parametrize("exponente", [0, 1, 2])
+def test_potencia_nunca_negativa(base, exponente):
+    assert base ** exponente >= 0
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Marcas (marks) — organizar y controlar la ejecución</h2>
+    <p>Las marcas permiten categorizar tests, saltarlos condicionalmente y filtrar qué tests ejecutar en cada contexto (PR rápido vs CI completo).</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>marcas_y_skip.py — skip, skipif, xfail, marcas personalizadas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+import sys
+
+
+# ── skip — siempre se salta ──────────────────────────────────────
+@pytest.mark.skip(reason="WIP: lógica de descuento aún no implementada")
+def test_descuento_premium_pendiente():
+    assert False  # Este fallo no cuenta
+
+
+# ── skipif — salta condicionalmente ─────────────────────────────
+@pytest.mark.skipif(sys.platform == "win32", reason="Paths POSIX no disponibles en Windows")
+def test_lectura_fichero_posix():
+    assert "/tmp/test".startswith("/")
+
+
+# ── xfail — fallo esperado (el test documenta un bug conocido) ───
+@pytest.mark.xfail(reason="Bug #247: parseo de fechas ISO con zona horaria")
+def test_parseo_fecha_con_timezone():
+    from datetime import datetime
+    # Este fallo es conocido — el test lo documenta pero no bloquea el build
+    resultado = datetime.fromisoformat("2024-01-15T10:30:00+02:00")
+    assert resultado.hour == 10  # fallará en versiones antiguas de Python
+
+
+# ── Marcas personalizadas — para filtrar tests en CLI ────────────
+@pytest.mark.integration
+def test_conexion_base_de_datos():
+    """Requiere BD real. Se ejecuta solo en CI con --integration."""
+    pass
+
+
+@pytest.mark.slow
+def test_proceso_batch_completo():
+    """Tarda 10s. Excluido del ciclo rápido de desarrollo."""
+    pass
+
+
+@pytest.mark.smoke
+def test_api_health_check():
+    """Test rápido de humo. Siempre se ejecuta."""
+    pass
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>pytest.ini — configuración del proyecto (alternativa: pyproject.toml)</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>[pytest]
+# Dónde buscar tests
+testpaths = tests
+
+# Patrones de ficheros de test
+python_files = test_*.py *_test.py
+python_classes = Test*
+python_functions = test_*
+
+# Marcas registradas (evita warnings de marcas no declaradas)
+markers =
+    integration: tests que requieren infraestructura real
+    slow: tests que tardan más de 5 segundos
+    smoke: tests de humo para verificación rápida
+    unit: tests unitarios puros
+
+# Opciones por defecto cuando se ejecuta pytest sin argumentos
+addopts =
+    -v
+    --tb=short
+    --strict-markers
+
+# ── Uso en CLI ──────────────────────────────────────────────────
+# Solo tests rápidos (excluir slow e integration):
+#   pytest -m "not slow and not integration"
+#
+# Solo smoke tests:
+#   pytest -m smoke
+#
+# Solo unit tests:
+#   pytest -m unit
+#
+# Con coverage:
+#   pytest --cov=src --cov-report=term-missing
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>conftest.py — fixtures compartidas entre ficheros</h2>
+    <p><code>conftest.py</code> es descubierto automáticamente por pytest. Las fixtures que defines ahí están disponibles en todos los tests del mismo directorio y subdirectorios, sin necesidad de importarlas.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>conftest.py — fichero central de fixtures compartidas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># tests/conftest.py
+#
+# Estructura del proyecto:
+#   src/
+#     auth.py
+#     orders.py
+#   tests/
+#     conftest.py          ← fixtures compartidas por todos los tests
+#     test_auth.py
+#     test_orders.py
+#     integration/
+#       conftest.py        ← fixtures solo para tests de integración
+#       test_db.py
+
+import pytest
+from unittest.mock import MagicMock
+from src.auth import ServicioAuth
+from src.orders import OrderService
+
+
+# ── Fixtures de dominio compartidas ─────────────────────────────
+
+@pytest.fixture
+def mock_user_repo():
+    repo = MagicMock()
+    repo.verificar_credenciales.return_value = True
+    return repo
+
+
+@pytest.fixture
+def servicio_auth(mock_user_repo):
+    return ServicioAuth(repo=mock_user_repo)
+
+
+@pytest.fixture
+def usuario_autenticado(servicio_auth):
+    """Token de un usuario autenticado — útil en múltiples tests."""
+    return servicio_auth.login("ana@ejemplo.com", "password123")
+
+
+# ── Fixture de datos de prueba ───────────────────────────────────
+
+@pytest.fixture
+def pedido_de_ejemplo():
+    return {
+        "id": "ORD-001",
+        "total": 250.0,
+        "email": "ana@ejemplo.com",
+        "items": [
+            {"sku": "P001", "qty": 2, "precio": 100.0},
+            {"sku": "P002", "qty": 1, "precio": 50.0},
+        ]
+    }
+
+
+# ── autouse — fixture que se aplica a todos los tests del scope ──
+
+@pytest.fixture(autouse=True)
+def reset_configuracion_global():
+    """Asegura que la configuración esté limpia antes de cada test."""
+    from src import config
+    config.reset()
+    yield
+    config.reset()
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>test_auth.py — usando fixtures del conftest.py sin importarlas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># tests/test_auth.py
+# Las fixtures 'servicio_auth', 'mock_user_repo', 'usuario_autenticado'
+# vienen del conftest.py — no hay ningún import explícito
+
+import pytest
+from src.auth import CredencialesInvalidas
+
+
+def test_login_exitoso_devuelve_token(servicio_auth):
+    token = servicio_auth.login("ana@ejemplo.com", "pass")
+    assert token is not None
+
+
+def test_login_delega_verificacion_al_repo(servicio_auth, mock_user_repo):
+    servicio_auth.login("ana@ejemplo.com", "pass123")
+    mock_user_repo.verificar_credenciales.assert_called_once_with(
+        "ana@ejemplo.com", "pass123"
+    )
+
+
+def test_login_fallido_lanza_excepcion(servicio_auth, mock_user_repo):
+    mock_user_repo.verificar_credenciales.return_value = False
+    with pytest.raises(CredencialesInvalidas):
+        servicio_auth.login("hacker@ejemplo.com", "wrong")
+
+
+def test_token_ya_disponible(usuario_autenticado):
+    """Fixture de alto nivel: token listo en una línea."""
+    assert len(usuario_autenticado) > 0
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Plugins esenciales</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>plugins_esenciales.sh — instalación y uso básico de los plugins clave</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># ── pytest-cov: cobertura integrada ─────────────────────────────
+pip install pytest-cov
+
+pytest --cov=src --cov-report=term-missing --cov-fail-under=80
+# term-missing: muestra qué líneas no están cubiertas
+# cov-fail-under: falla si la cobertura baja del 80%
+
+
+# ── pytest-asyncio: tests de código async/await ─────────────────
+pip install pytest-asyncio
+
+# En pytest.ini o pyproject.toml:
+# asyncio_mode = auto   (marca todos los tests async automáticamente)
+
+
+# ── pytest-xdist: paralelismo ───────────────────────────────────
+pip install pytest-xdist
+
+pytest -n auto       # usa todos los cores disponibles
+pytest -n 4          # usa exactamente 4 workers
+
+
+# ── pytest-mock: fixture mock más cómoda que MagicMock directo ──
+pip install pytest-mock
+# Proporciona la fixture 'mocker' inyectable directamente
+
+
+# ── pytest-timeout: tests que no pueden colgarse ────────────────
+pip install pytest-timeout
+
+pytest --timeout=10   # mata cualquier test que tarde más de 10s
+# O por test: @pytest.mark.timeout(5)
+
+
+# ── freezegun / time-machine: controlar el tiempo en tests ───────
+pip install freezegun
+
+# @freeze_time("2024-01-15") sobre una función de test
+# Hace que datetime.now() devuelva esa fecha
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>async_test_ejemplo.py — testear código asyncio con pytest-asyncio</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code"># pytest.ini: asyncio_mode = auto
+
+import asyncio
+import pytest
+
+
+async def obtener_precio_externo(producto_id: str) -> float:
+    """Simula llamada async a API de precios."""
+    await asyncio.sleep(0)  # yield de control
+    precios = {"P001": 99.99, "P002": 49.99}
+    return precios.get(producto_id, 0.0)
+
+
+async def calcular_total(items: list[tuple[str, int]]) -> float:
+    """Calcula el total de una lista de (producto_id, cantidad)."""
+    total = 0.0
+    for producto_id, cantidad in items:
+        precio = await obtener_precio_externo(producto_id)
+        total += precio * cantidad
+    return total
+
+
+# Con asyncio_mode = auto basta con async def test_...
+async def test_calcular_total_dos_productos():
+    items = [("P001", 2), ("P002", 1)]
+    total = await calcular_total(items)
+    assert total == pytest.approx(249.97)  # 99.99*2 + 49.99*1
+
+
+async def test_producto_desconocido_suma_cero():
+    items = [("DESCONOCIDO", 5)]
+    total = await calcular_total(items)
+    assert total == 0.0
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>mocker_fixture.py — pytest-mock: forma idiomática de mockear en pytest</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">import smtplib
+from email.message import EmailMessage
+
+
+def enviar_email_bienvenida(email: str) -> bool:
+    """Función de producción que usa smtplib."""
+    try:
+        with smtplib.SMTP("localhost", 1025) as server:
+            msg = EmailMessage()
+            msg["From"] = "noreply@empresa.com"
+            msg["To"] = email
+            msg["Subject"] = "Bienvenido"
+            msg.set_content("Gracias por registrarte.")
+            server.send_message(msg)
+        return True
+    except Exception:
+        return False
+
+
+# Con pytest-mock: la fixture 'mocker' se inyecta automáticamente
+def test_enviar_email_llama_a_smtp(mocker):
+    mock_smtp = mocker.patch("smtplib.SMTP")
+    mock_smtp_instance = mock_smtp.return_value.__enter__.return_value
+
+    resultado = enviar_email_bienvenida("ana@ejemplo.com")
+
+    assert resultado is True
+    mock_smtp_instance.send_message.assert_called_once()
+
+
+def test_enviar_email_devuelve_false_si_smtp_falla(mocker):
+    mocker.patch("smtplib.SMTP", side_effect=ConnectionRefusedError)
+
+    resultado = enviar_email_bienvenida("ana@ejemplo.com")
+
+    assert resultado is False
+</code></pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Configuración mínima para un proyecto real: <code>pytest</code> + <code>pytest-cov</code> + <code>pytest-mock</code>. Con eso cubre el 90% de los casos. Añade <code>pytest-asyncio</code> si tienes código async, <code>pytest-xdist</code> si la suite tarda más de 30 segundos, y <code>freezegun</code> si manejas fechas en la lógica de negocio.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m3_cap4_arquitectura_sw.html" class="chapter-nav-btn">← Cap 4 · Arquitectura SW</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m4_cap6_coverage_calidad.html" class="chapter-nav-btn">Cap 6 · Coverage →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

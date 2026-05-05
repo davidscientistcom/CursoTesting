@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 7 — Hypothesis | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li class="active"><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 4 — Herramientas · Capítulo 7</div>
+    <h1 class="page-header-title">Hypothesis — Property-Based Testing</h1>
+    <p class="page-header-sub">@given · strategies · shrinking · propiedades vs ejemplos · cuándo usar Hypothesis</p>
+  </div>
+
+  <section>
+    <h2>El problema de los tests basados en ejemplos</h2>
+    <p>Los tests de ejemplo (<code>assert suma(2, 3) == 5</code>) tienen un punto ciego: <strong>solo verifican los casos que el programador pensó</strong>. La realidad es que los bugs viven en los casos que no pensaste. Hypothesis los encuentra.</p>
+
+    <div class="diagram-block">
+<pre>
+Tests de ejemplo           Tests basados en propiedades (Hypothesis)
+───────────────────────    ─────────────────────────────────────────────
+Tú eliges los inputs       Hypothesis genera cientos de inputs aleatorios
+                           con sesgo hacia casos borde
+
+Verificas: "para x=2       Verificas: "para CUALQUIER x e y, la propiedad
+y y=3, el resultado es 5"  P(x,y) siempre se cumple"
+
+Cobertura de casos:        Cobertura de casos:
+  limitada a lo que           muy alta — incluye None, 0, -1, "", [], inf,
+  el programador imagina      strings unicode, listas vacías, valores extremos
+
+Cuando falla, sabes         Cuando falla, Hypothesis hace SHRINKING:
+exactamente qué         →   reduce el input hasta el ejemplo MÍNIMO
+                            que reproduce el fallo. Luego lo guarda
+                            en base de datos para reproducir en futuros runs.
+</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>@given y strategies — los fundamentos</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>hypothesis_basico.py — primer test con Hypothesis</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>pip install hypothesis</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>hypothesis_primer_test.py — comparando ejemplo-based vs property-based</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from hypothesis import given, assume
+from hypothesis import strategies as st
+
+
+def invertir_lista(lista: list) -> list:
+    return lista[::-1]
+
+
+# ── Test de ejemplo (tradicional) ───────────────────────────────
+def test_invertir_lista_ejemplo():
+    assert invertir_lista([1, 2, 3]) == [3, 2, 1]
+    assert invertir_lista([]) == []
+
+
+# ── Test de propiedad (Hypothesis) ──────────────────────────────
+# Propiedad: invertir dos veces devuelve la lista original
+@given(st.lists(st.integers()))
+def test_doble_inversion_es_identidad(lista):
+    assert invertir_lista(invertir_lista(lista)) == lista
+
+
+# Hypothesis ejecuta este test con ~100 ejemplos generados automáticamente.
+# Incluirá: [], [0], [-1], [2**63], [0, 0, 0], [1, -9999, 0], etc.
+
+
+# Propiedad: la longitud se preserva
+@given(st.lists(st.integers()))
+def test_inversion_preserva_longitud(lista):
+    assert len(invertir_lista(lista)) == len(lista)
+
+
+# Propiedad: los elementos son los mismos (el orden cambia)
+@given(st.lists(st.integers()))
+def test_inversion_preserva_elementos(lista):
+    assert sorted(invertir_lista(lista)) == sorted(lista)
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>hypothesis_strategies.py — catálogo de strategies más usadas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>from hypothesis import given
+from hypothesis import strategies as st
+
+
+# ── Tipos básicos ────────────────────────────────────────────────
+@given(st.integers())                         # cualquier int, incluye extremos
+@given(st.integers(min_value=0, max_value=100))  # rango acotado
+@given(st.floats(allow_nan=False, allow_infinity=False))
+@given(st.text())                             # cualquier string unicode
+@given(st.text(alphabet=st.characters(whitelist_categories=("Lu", "Ll"))))
+@given(st.booleans())
+@given(st.none())
+
+
+# ── Colecciones ──────────────────────────────────────────────────
+@given(st.lists(st.integers()))               # listas de enteros
+@given(st.lists(st.integers(), min_size=1))   # al menos un elemento
+@given(st.lists(st.integers(), max_size=10))  # máximo 10 elementos
+@given(st.sets(st.integers()))
+@given(st.dictionaries(st.text(), st.integers()))
+@given(st.tuples(st.integers(), st.text()))   # tupla (int, str)
+
+
+# ── Combinadores ─────────────────────────────────────────────────
+@given(st.one_of(st.integers(), st.text(), st.none()))  # any of
+@given(st.integers() | st.text())                       # equivalente
+@given(st.from_regex(r"\d{4}-\d{2}-\d{2}"))            # fechas ISO
+
+
+# ── Ejemplo completo: función de parseo ─────────────────────────
+def parsear_entero_seguro(valor: str) -> int | None:
+    try:
+        return int(valor)
+    except ValueError:
+        return None
+
+
+@given(st.integers())
+def test_parsear_entero_desde_su_representacion_string(n):
+    """Si conviertes un int a str y lo parseas, debes recuperar el int original."""
+    assert parsear_entero_seguro(str(n)) == n
+
+
+@given(st.text())
+def test_parsear_string_arbitrario_nunca_lanza_excepcion(texto):
+    """La función no debe propagar excepciones nunca."""
+    resultado = parsear_entero_seguro(texto)
+    assert resultado is None or isinstance(resultado, int)
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Shrinking — el superpoder de Hypothesis</h2>
+    <p>Cuando Hypothesis encuentra un fallo, no te muestra el input de 500 elementos que falló — <strong>reduce automáticamente el input hasta el ejemplo más pequeño</strong> que reproduce el mismo fallo. Esto se llama shrinking y hace que los fallos sean inmediatamente comprensibles.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>hypothesis_shrinking.py — ver shrinking en acción</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from hypothesis import given
+from hypothesis import strategies as st
+
+
+def ordenar_y_deduplicar(lista: list[int]) -> list[int]:
+    """Ordena y elimina duplicados. Tiene un bug: no maneja negativos."""
+    if any(x < 0 for x in lista):
+        raise ValueError("Negativos no soportados")  # BUG: restricción no documentada
+    return sorted(set(lista))
+
+
+@given(st.lists(st.integers()))
+def test_resultado_esta_ordenado(lista):
+    """Propiedad: el resultado debe estar siempre ordenado."""
+    resultado = ordenar_y_deduplicar(lista)
+    assert resultado == sorted(resultado)
+
+
+# Cuando ejecutas este test, Hypothesis:
+# 1. Genera listas aleatorias hasta encontrar una que hace fallar
+#    (por ejemplo: [-394, 0, 17, -1, 23, 45, ...])
+# 2. Shrinking: reduce la lista → [-394, 0] → [-1] → [-1]
+# 3. Te reporta: "Falsifying example: lista=[-1]"
+#
+# Hypothesis 8.x output:
+# ─────────────────────────────────────────────────
+# Falsifying example: test_resultado_esta_ordenado(
+#   lista=[-1],
+# )
+# ValueError: Negativos no soportados
+# ─────────────────────────────────────────────────
+#
+# El ejemplo mínimo que reproduce el fallo es [-1], no la lista original.
+# Hypothesis guarda este caso en .hypothesis/examples para reproducirlo siempre.
+
+
+# ── La base de datos de Hypothesis ─────────────────────────────
+# .hypothesis/
+#   examples/       ← casos que fallaron, siempre se re-ejecutan primero
+#
+# Comportamiento: si arreglas el bug, en el próximo run Hypothesis
+# verifica el caso guardado primero. Luego explora nuevos casos.
+# Nunca "olvida" un fallo que ya encontró.
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Propiedades útiles — cómo pensar en propiedades</h2>
+    <p>La parte difícil de Hypothesis no es la sintaxis — es <strong>saber qué propiedad verificar</strong>. Aquí están los patrones más comunes:</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>hypothesis_patrones.py — patrones de propiedades para casos reales</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from hypothesis import given, assume
+from hypothesis import strategies as st
+from decimal import Decimal
+
+
+# ── Patrón 1: Round-trip (serializar/deserializar) ──────────────
+import json
+
+@given(st.dictionaries(
+    st.text(min_size=1),
+    st.one_of(st.integers(), st.text(), st.booleans(), st.none())
+))
+def test_json_roundtrip(datos):
+    """Serializar a JSON y deserializar debe dar el mismo objeto."""
+    assert json.loads(json.dumps(datos)) == datos
+
+
+# ── Patrón 2: Idempotencia ──────────────────────────────────────
+@given(st.text())
+def test_strip_es_idempotente(texto):
+    """Aplicar strip dos veces es lo mismo que una."""
+    assert texto.strip().strip() == texto.strip()
+
+
+# ── Patrón 3: Invariantes de dominio ──────────────────────────────
+def aplicar_descuento(precio: Decimal, porcentaje: int) -> Decimal:
+    assert 0 <= porcentaje <= 100
+    return precio * Decimal(100 - porcentaje) / Decimal(100)
+
+@given(
+    precio=st.decimals(min_value="0.01", max_value="9999.99", places=2),
+    porcentaje=st.integers(min_value=0, max_value=100),
+)
+def test_descuento_nunca_aumenta_el_precio(precio, porcentaje):
+    """Un descuento nunca puede hacer el precio mayor."""
+    resultado = aplicar_descuento(precio, porcentaje)
+    assert resultado <= precio
+
+@given(
+    precio=st.decimals(min_value="0.01", max_value="9999.99", places=2),
+    porcentaje=st.integers(min_value=0, max_value=100),
+)
+def test_descuento_nunca_produce_precio_negativo(precio, porcentaje):
+    resultado = aplicar_descuento(precio, porcentaje)
+    assert resultado >= Decimal("0")
+
+
+# ── Patrón 4: Comparación con implementación simple ─────────────
+def suma_rapida(numeros: list[int]) -> int:
+    """Implementación optimizada (podría tener bugs)."""
+    if not numeros:
+        return 0
+    return numeros[0] + suma_rapida(numeros[1:])
+
+@given(st.lists(st.integers(min_value=-1000, max_value=1000), max_size=50))
+def test_suma_rapida_equivale_a_builtin(numeros):
+    """La implementación custom debe coincidir con sum() de Python."""
+    assert suma_rapida(numeros) == sum(numeros)
+
+
+# ── Patrón 5: assume() — descartar inputs inválidos ─────────────
+@given(st.integers(), st.integers())
+def test_division_entera(a, b):
+    assume(b != 0)  # descarta el caso b=0 (no es un bug, es precondición)
+    resultado = a // b
+    assert isinstance(resultado, int)
+    # No hay assertion sobre el valor — solo que no lanza excepción
+    # y que el resultado es del tipo correcto
+</code></pre>
+    </div>
+
+    <div class="info-box info">
+      <span class="info-box-label">INFO</span>
+      <code>assume(condición)</code> descarta el input si la condición es falsa y genera uno nuevo. Úsalo con moderación: si <code>assume</code> descarta el 99% de los inputs, Hypothesis lo detecta y falla con <code>UnsatisfiedAssumption</code>. En ese caso, es mejor usar una strategy acotada (<code>st.integers(min_value=1)</code> en lugar de <code>assume(n != 0)</code>).
+    </div>
+  </section>
+
+  <section>
+    <h2>Hypothesis con dataclasses y objetos de dominio</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>hypothesis_dataclasses.py — generar objetos de dominio automáticamente</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">from hypothesis import given
+from hypothesis import strategies as st
+from hypothesis.strategies import builds
+from dataclasses import dataclass
+from decimal import Decimal
+
+
+@dataclass
+class LineaPedido:
+    sku: str
+    cantidad: int
+    precio_unitario: Decimal
+
+
+@dataclass
+class Pedido:
+    lineas: list[LineaPedido]
+
+    def total(self) -> Decimal:
+        return sum(l.precio_unitario * l.cantidad for l in self.lineas)
+
+    def cantidad_total(self) -> int:
+        return sum(l.cantidad for l in self.lineas)
+
+
+# Strategy para generar LineaPedido válidas
+linea_strategy = builds(
+    LineaPedido,
+    sku=st.text(min_size=3, max_size=10, alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
+    cantidad=st.integers(min_value=1, max_value=100),
+    precio_unitario=st.decimals(min_value="0.01", max_value="999.99", places=2),
+)
+
+pedido_strategy = builds(
+    Pedido,
+    lineas=st.lists(linea_strategy, min_size=1, max_size=20),
+)
+
+
+@given(pedido_strategy)
+def test_total_pedido_nunca_es_negativo(pedido: Pedido):
+    assert pedido.total() >= Decimal("0")
+
+
+@given(pedido_strategy)
+def test_cantidad_total_coincide_con_suma_de_lineas(pedido: Pedido):
+    esperado = sum(l.cantidad for l in pedido.lineas)
+    assert pedido.cantidad_total() == esperado
+
+
+@given(pedido_strategy, pedido_strategy)
+def test_combinar_pedidos_suma_los_totales(pedido_a: Pedido, pedido_b: Pedido):
+    pedido_combinado = Pedido(lineas=pedido_a.lineas + pedido_b.lineas)
+    assert pedido_combinado.total() == pedido_a.total() + pedido_b.total()
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cuándo usar Hypothesis y cuándo no</h2>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th>Contexto</th><th>Hypothesis</th><th>Tests de ejemplo</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Funciones matemáticas</strong> (suma, descuento, conversión)</td>
+          <td>Ideal — las propiedades matemáticas son evidentes</td>
+          <td>Complementario para casos específicos documentados</td>
+        </tr>
+        <tr>
+          <td><strong>Parsers / serialización</strong> (JSON, CSV, protobuf)</td>
+          <td>Ideal — round-trip property es siempre aplicable</td>
+          <td>Para formatos de entrada específicos</td>
+        </tr>
+        <tr>
+          <td><strong>Algoritmos de ordenación, búsqueda</strong></td>
+          <td>Ideal — comparar con implementación de referencia</td>
+          <td>Para casos borde explícitos (lista vacía, un elemento)</td>
+        </tr>
+        <tr>
+          <td><strong>Lógica de negocio con reglas de dominio</strong></td>
+          <td>Muy útil — invariantes de dominio como propiedades</td>
+          <td>Para casos de negocio específicos con valores fijos</td>
+        </tr>
+        <tr>
+          <td><strong>UI / HTTP handlers / efectos secundarios</strong></td>
+          <td>Difícil — las propiedades son menos evidentes</td>
+          <td>Más adecuado — comportamiento concreto esperado</td>
+        </tr>
+        <tr>
+          <td><strong>Flujos de integración complejos</strong></td>
+          <td>No recomendado — demasiado acoplado a infraestructura</td>
+          <td>Tests de integración con escenarios fijos</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Regla práctica: añade Hypothesis a una función cuando, al escribir <code>@pytest.mark.parametrize</code>, notes que estás generando muchos casos similares manualmente. Si tienes 15 pares de entrada/salida en parametrize y todos siguen el mismo patrón, Hypothesis probablemente encontrará el fallo que te faltó.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m4_cap6_coverage_calidad.html" class="chapter-nav-btn">← Cap 6 · Coverage</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m5_cap8_unit_tests.html" class="chapter-nav-btn">Cap 8 · Tests unitarios →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

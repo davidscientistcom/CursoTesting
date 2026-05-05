@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 2 — Código que duele | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li class="active"><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 1 — Por qué testear · Capítulo 2</div>
+    <h1 class="page-header-title">Código que duele</h1>
+    <p class="page-header-sub">Complejidad ciclomática · código delta · SRP · cohesión · acoplamiento · cobertura que miente</p>
+  </div>
+
+  <section>
+    <h2>La premisa: el código hace difícil el testing, no al revés</h2>
+    <p>Cuando un equipo dice "no tenemos tiempo para hacer tests", en el 80% de los casos el problema real es que <strong>el código no está escrito para ser testeable</strong>. El testing duele porque el código duele primero.</p>
+    <p>Este capítulo muestra los patrones concretos que hacen un código difícil (o imposible) de testear, y cuantifica ese dolor. Entender esto es el argumento más sólido para hacer las cosas bien desde el principio.</p>
+  </section>
+
+  <section>
+    <h2>Complejidad ciclomática — la métrica que cuenta tus miedos</h2>
+    <p>La complejidad ciclomática (CC) es el número de caminos linealmente independientes a través de una función. Fue definida por Thomas McCabe en 1976 y sigue siendo la métrica de complejidad más usada en la industria.</p>
+    <p><strong>Fórmula simplificada:</strong> empieza en 1 y suma 1 por cada <code>if</code>, <code>elif</code>, <code>for</code>, <code>while</code>, <code>except</code>, <code>and</code>, <code>or</code>, o expresión ternaria que encuentres en la función.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr><th>CC</th><th>Interpretación</th><th>Tests necesarios (mínimo)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>1 — 5</td><td>Código simple, bajo riesgo</td><td>Pocos, caben en la cabeza</td></tr>
+        <tr><td>6 — 10</td><td>Moderado, manejable</td><td>Empieza a ser no trivial</td></tr>
+        <tr><td>11 — 20</td><td>Alta complejidad, riesgo real</td><td>Al menos CC casos de prueba para cobertura de ramas</td></tr>
+        <tr><td>&gt; 20</td><td>Inmanejable, refactorizar urgente</td><td>Imposible cubrir exhaustivamente; los bugs se esconden</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>complejidad_ciclomatica.py — CC = 9, difícil de testear exhaustivamente</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>def calcular_precio_envio(peso: float, destino: str,
+                          es_premium: bool, tiene_cupon: bool) -> float:
+    # CC empieza en 1
+    precio = 0.0
+
+    if destino == "nacional":          # +1 → CC=2
+        if peso &lt;= 1.0:               # +1 → CC=3
+            precio = 3.50
+        elif peso &lt;= 5.0:             # +1 → CC=4
+            precio = 6.00
+        else:
+            precio = 10.00
+    elif destino == "europa":          # +1 → CC=5
+        if peso &lt;= 2.0:               # +1 → CC=6
+            precio = 15.00
+        else:
+            precio = 25.00
+    else:                              # internacional
+        precio = 50.00
+
+    if es_premium:                     # +1 → CC=7
+        precio *= 0.85
+
+    if tiene_cupon and precio &gt; 10.0: # +2 → CC=9 (and cuenta)
+        precio -= 5.0
+
+    return round(precio, 2)
+
+# Para cobertura total de ramas necesitas al menos 9 tests.
+# En la práctica, combinando condicionales, son decenas de casos.
+# herramienta: radon cc -s tu_fichero.py
+# $ pip install radon
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>medir_cc.sh — medir complejidad ciclomática con radon</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code># Instalar radon
+pip install radon
+
+# Ver CC de todas las funciones (con grado A-F)
+radon cc -s envio.py
+
+# Output esperado:
+# envio.py
+#     F 1:0 calcular_precio_envio - C (9)
+#               ↑ Grado C: complejidad moderada-alta. Revisar.
+
+# Ver solo las funciones con CC > 5 en todo el proyecto
+radon cc -s --min C src/
+
+# Ver también el índice de mantenibilidad (MI)
+radon mi -s envio.py
+# MI score < 20 = código prácticamente inmanejable
+</code></pre>
+    </div>
+
+    <div class="info-box warn">
+      <span class="info-box-label">WARN</span>
+      La complejidad ciclomática mínima de tests para cobertura de ramas (<em>branch coverage</em>) es igual a la CC. Con CC=9 necesitas <strong>al menos</strong> 9 tests para cubrir cada rama. Con CC=25 necesitas 25, y en combinación con condicionales anidados, pueden ser centenares de combinaciones. La CC no es una métrica bonita — es una factura de deuda técnica.
+    </div>
+  </section>
+
+  <section>
+    <h2>Código en delta — los nidos de if que matan la legibilidad</h2>
+    <p>El "código en delta" o "código flecha" es el patrón de <em>if</em> anidados que forman una estructura visual en forma de &gt;. Es el síntoma más visible de complejidad ciclomática alta, y uno de los patrones más difíciles de testear porque el número de caminos crece exponencialmente con cada nivel de anidamiento.</p>
+
+    <div class="diagram-block">
+<pre>
+Código en delta — "la flecha de la muerte":
+
+def procesar_pedido(pedido):
+    if pedido:                         ← nivel 1
+        if pedido.usuario:             ← nivel 2
+            if pedido.usuario.activo:  ← nivel 3
+                if pedido.items:       ← nivel 4
+                    for item in pedido.items:    ← nivel 5
+                        if item.stock &gt; 0:       ← nivel 6
+                            ...                  ← aquí el código real
+
+Cada nivel de anidamiento multiplica los caminos posibles.
+Nivel 6 = hasta 2^6 = 64 combinaciones posibles de entradas.
+</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>delta_antes.py — código en delta, CC=7, imposible de leer y testear</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>def procesar_pedido(pedido: dict | None) -> str:
+    resultado = "error"
+    if pedido is not None:
+        if "usuario_id" in pedido:
+            if pedido.get("activo", False):
+                if pedido.get("items"):
+                    total = 0
+                    for item in pedido["items"]:
+                        if item.get("precio", 0) &gt; 0:
+                            total += item["precio"] * item.get("cantidad", 1)
+                    if total &gt; 0:
+                        resultado = f"ok:{total:.2f}"
+    return resultado
+
+# Problemas:
+# 1. CC ≈ 7: necesitas al menos 7 tests para cubrir ramas
+# 2. El caso "feliz" está en el nivel más profundo de indentación
+# 3. Para entender qué hace, tienes que leerlo de adentro hacia afuera
+# 4. Añadir un nuevo requisito (ej: descuento) significa otro nivel más
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>delta_despues.py — "cláusulas de guarda": early return para invertir el delta</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>def procesar_pedido(pedido: dict | None) -> str:
+    # Técnica: "cláusulas de guarda" — falla rápido, deja el camino feliz al final
+    if pedido is None:
+        return "error:pedido_nulo"
+    if "usuario_id" not in pedido:
+        return "error:sin_usuario"
+    if not pedido.get("activo", False):
+        return "error:usuario_inactivo"
+    if not pedido.get("items"):
+        return "error:sin_items"
+
+    # El camino feliz está al nivel 0 de indentación. Fácil de leer.
+    total = sum(
+        item["precio"] * item.get("cantidad", 1)
+        for item in pedido["items"]
+        if item.get("precio", 0) &gt; 0
+    )
+
+    if total &lt;= 0:
+        return "error:total_cero"
+
+    return f"ok:{total:.2f}"
+
+# Diferencias clave:
+# 1. Cada condición de error es una cláusula de guarda independiente
+# 2. Cada cláusula de guarda se puede testear con un test de una línea
+# 3. El camino feliz es visible sin indentación
+# 4. CC sigue siendo ~7 pero la legibilidad y testabilidad mejoran radicalmente
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Funciones largas y el Principio de Responsabilidad Única (SRP)</h2>
+    <p>El SRP establece que una clase o función debe tener <strong>una sola razón para cambiar</strong>. Una función que hace demasiadas cosas tiene múltiples razones para cambiar — y múltiples formas de romperse.</p>
+    <p>Longitudes orientativas (no absolutas): funciones de más de 20 líneas de código <em>lógico</em> son sospechosas. Más de 40 líneas es una señal clara de que hay al menos dos funciones ahí dentro.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>srp_roto.py — una función que hace 4 cosas distintas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import json
+import smtplib
+from email.message import EmailMessage
+
+
+def procesar_y_notificar_pedido(pedido_json: str) -> bool:
+    """Esta función tiene 4 responsabilidades. Viola SRP."""
+
+    # Responsabilidad 1: parsear JSON
+    try:
+        pedido = json.loads(pedido_json)
+    except json.JSONDecodeError:
+        return False
+
+    # Responsabilidad 2: validar negocio
+    if not pedido.get("items") or not pedido.get("email"):
+        return False
+    total = sum(i["precio"] * i["cantidad"] for i in pedido["items"])
+    if total &lt;= 0:
+        return False
+
+    # Responsabilidad 3: aplicar descuentos
+    if pedido.get("cupon") == "DESC10":
+        total *= 0.90
+
+    # Responsabilidad 4: enviar email de confirmación
+    msg = EmailMessage()
+    msg["Subject"] = f"Pedido confirmado — {total:.2f}€"
+    msg["From"] = "noreply@tienda.com"
+    msg["To"] = pedido["email"]
+    msg.set_content(f"Tu pedido por {total:.2f}€ ha sido procesado.")
+    with smtplib.SMTP("smtp.gmail.com", 587) as smtp:
+        smtp.sendmail("noreply@tienda.com", pedido["email"], msg.as_string())
+
+    return True
+
+# Para testear esta función necesitas:
+# - Un servidor SMTP real o mockear 4 objetos distintos (smtp, json.loads, etc.)
+# - Conocer los internos de TODAS las responsabilidades
+# - Si el email falla, no sabes si fue el parsing, la validación o el SMTP
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>srp_correcto.py — cuatro responsabilidades, cuatro funciones, cada una testeable</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import json
+from dataclasses import dataclass
+from typing import Protocol
+
+
+@dataclass
+class Pedido:
+    items: list[dict]
+    email: str
+    cupon: str = ""
+
+
+class Notificador(Protocol):
+    def enviar_confirmacion(self, email: str, total: float) -> None: ...
+
+
+# Responsabilidad 1: parsear — pura, sin side effects, trivial de testear
+def parsear_pedido(pedido_json: str) -> Pedido | None:
+    try:
+        datos = json.loads(pedido_json)
+        return Pedido(
+            items=datos["items"],
+            email=datos["email"],
+            cupon=datos.get("cupon", ""),
+        )
+    except (json.JSONDecodeError, KeyError):
+        return None
+
+
+# Responsabilidad 2: calcular total — pura, sin side effects
+def calcular_total(pedido: Pedido) -> float:
+    total = sum(i["precio"] * i["cantidad"] for i in pedido.items)
+    if pedido.cupon == "DESC10":
+        total *= 0.90
+    return round(total, 2)
+
+
+# Responsabilidad 3: validar — pura
+def pedido_valido(pedido: Pedido, total: float) -> bool:
+    return bool(pedido.items) and bool(pedido.email) and total &gt; 0
+
+
+# Responsabilidad 4: orquestar (usa Protocol → se puede mockear el notificador)
+def procesar_pedido(pedido_json: str, notificador: Notificador) -> bool:
+    pedido = parsear_pedido(pedido_json)
+    if not pedido:
+        return False
+    total = calcular_total(pedido)
+    if not pedido_valido(pedido, total):
+        return False
+    notificador.enviar_confirmacion(pedido.email, total)
+    return True
+
+# Ahora:
+# - parsear_pedido: 2 tests (válido, inválido). Sin mocks.
+# - calcular_total: 3 tests (sin cupon, con cupon, items vacíos). Sin mocks.
+# - pedido_valido: 4 tests. Sin mocks.
+# - procesar_pedido: 2 tests con un mock del Notificador.
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Cohesión y acoplamiento — las dos fuerzas del diseño</h2>
+    <p>Son las dos métricas fundamentales del diseño orientado a objetos y son inversamente problemáticas: quieres <strong>alta cohesión</strong> y <strong>bajo acoplamiento</strong>.</p>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <h4>Alta cohesión</h4>
+        <p>Los elementos de un módulo o clase están fuertemente relacionados entre sí y trabajan hacia un objetivo común. Una clase de alta cohesión es fácil de nombrar, de entender y de testear en aislamiento.</p>
+      </div>
+      <div class="concept-card">
+        <h4>Baja cohesión</h4>
+        <p>La clase hace cosas no relacionadas. "Manager", "Helper", "Utils" son síntomas habituales. Para testear una cosa, necesitas configurar todo lo demás. Hay poca razón para que esas cosas estén juntas.</p>
+      </div>
+      <div class="concept-card">
+        <h4>Bajo acoplamiento</h4>
+        <p>Los módulos dependen poco unos de otros. Un cambio en el módulo A no obliga a cambiar el módulo B. Los tests del módulo A no necesitan instanciar toda la jerarquía de dependencias de B.</p>
+      </div>
+      <div class="concept-card">
+        <h4>Alto acoplamiento</h4>
+        <p>Los módulos se conocen demasiado. Instanciar una clase requiere instanciar cinco más. Un cambio en una capa propaga cambios en cascada. Los tests necesitan un esfuerzo de setup monumental.</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>acoplamiento.py — alto acoplamiento: el test de A necesita B, C y D</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import psycopg2
+import smtplib
+import redis
+
+
+class GestorPedidos:
+    """Alto acoplamiento: depende directamente de 3 infraestructuras."""
+
+    def __init__(self):
+        # El constructor instancia infraestructura real directamente
+        self.db = psycopg2.connect("host=localhost dbname=tienda user=app")
+        self.cache = redis.Redis(host="localhost", port=6379)
+        self.smtp = smtplib.SMTP("smtp.gmail.com", 587)
+
+    def crear_pedido(self, usuario_id: int, items: list) -> int:
+        cursor = self.db.cursor()
+        cursor.execute(
+            "INSERT INTO pedidos (usuario_id) VALUES (%s) RETURNING id",
+            (usuario_id,)
+        )
+        pedido_id = cursor.fetchone()[0]
+        self.db.commit()
+        self.cache.setex(f"pedido:{pedido_id}", 3600, "pendiente")
+        # enviar email...
+        return pedido_id
+
+# Para testear crear_pedido necesitas:
+# - PostgreSQL corriendo en localhost
+# - Redis corriendo en localhost
+# - Un servidor SMTP accesible
+# → Si uno falla, el test no puede ni ejecutarse.
+# → El test tarda segundos. Es de integración, no unitario.
+# → No es culpa de los tests. Es culpa del diseño.
+</code></pre>
+    </div>
+
+    <div class="info-box fail">
+      <span class="info-box-label">FAIL</span>
+      <strong>El test más caro es el que no puedes escribir.</strong> Cuando un componente instancia sus propias dependencias de infraestructura en el constructor, no puedes sustituirlas por mocks. La única forma de testear la lógica de negocio es levantar toda la infraestructura. Esto convierte tests unitarios en tests de integración sin querer.
+    </div>
+  </section>
+
+  <section>
+    <h2>Cobertura de código — qué mide y qué no mide</h2>
+    <p>La cobertura de código mide qué porcentaje de líneas (o ramas) de tu código se ejecutan durante los tests. Es útil como indicador, pero <strong>el 100% de cobertura no significa que el código esté bien testeado</strong>.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>cobertura_engana.py — 100% de cobertura con tests inútiles</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code">def dividir(a: float, b: float) -> float:
+    if b == 0:
+        raise ValueError("División por cero")
+    return a / b
+
+
+# Test que da 100% de cobertura de líneas:
+def test_dividir():
+    dividir(10.0, 2.0)          # ejecuta las líneas 4 y 5
+    try:
+        dividir(5.0, 0.0)       # ejecuta la línea 2
+    except ValueError:
+        pass
+
+# Cobertura: 100% de líneas. Pero los tests NO verifican NADA:
+# - No hacen assert del resultado (¿es 5.0? ¿o 4.9 por un bug?)
+# - No verifican el mensaje del ValueError
+# - No prueban casos borde: dividir(0, 5), dividir(-1, 2), dividir(1e308, 1)
+# Un bug como "return a / b + 1" pasaría todos estos "tests" con 100% cobertura.
+</code></pre>
+    </div>
+
+    <div class="diagram-block">
+<pre>
+Qué MIDE la cobertura:
+  ✓ Si una línea fue ejecutada al menos una vez
+  ✓ Si ambas ramas de un if fueron tomadas (branch coverage)
+  ✓ Si todos los casos de un match/switch fueron ejercitados
+
+Qué NO MIDE:
+  ✗ Si el resultado es correcto (necesitas assert)
+  ✗ Si probaste los casos borde correctos
+  ✗ Si el test tiene valor (¿qué pasa si el test siempre pasa?)
+  ✗ Si hay bugs en la lógica que no se revelan con tus entradas
+  ✗ La calidad del propio test
+
+La cobertura es un umbral mínimo, no un objetivo de calidad.
+80% con buenos asserts &gt;&gt;&gt; 100% con tests vacíos.
+</pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      La cobertura es útil como herramienta de descubrimiento: te dice qué código <em>no has visitado</em> durante los tests. Si hay un módulo al 20%, probablemente hay comportamiento no verificado. Úsala como brújula, no como destino. El objetivo real es: <strong>cada test verifica un comportamiento, y si el comportamiento cambia, el test falla</strong>. Un suite de tests que siempre pasa tiene valor cero, independientemente de su cobertura.
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m1_cap1_fundamentos.html" class="chapter-nav-btn">← Cap 1 · Fundamentos</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m2_cap3_tdd.html" class="chapter-nav-btn">Cap 3 · TDD →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>

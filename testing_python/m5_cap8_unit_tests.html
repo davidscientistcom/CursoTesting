@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cap 8 — Criterios de test unitario | Testing en Python</title>
+<link rel="stylesheet" href="../../shared/styles.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- Anti-flash: aplica el tema antes de pintar la página -->
+  <script>!function(){var t=localStorage.getItem('lucentia-theme')||'dark';'light'===t&&document.documentElement.setAttribute('data-theme','light')}()</script>
+</head>
+<body>
+<!-- Botón hamburguesa — visible en tablet/móvil -->
+<button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Abrir menú" aria-expanded="true">&#9776;</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">LucentIA</div>
+  <div class="sidebar-course">Testing en Python<br/>De cero a producción</div>
+  <ul class="sidebar-nav">
+    <li><a href="index.html">Inicio</a></li>
+    <li class="sidebar-section">Módulo 1 — Por qué testear</li>
+    <li><a href="m1_cap1_fundamentos.html">Cap 1 · Fundamentos y vocabulario</a></li>
+    <li><a href="m1_cap2_codigo_que_duele.html">Cap 2 · Código que duele</a></li>
+    <li class="sidebar-section">Módulo 2 — TDD</li>
+    <li><a href="m2_cap3_tdd.html">Cap 3 · TDD: el test dirige el diseño</a></li>
+    <li class="sidebar-section">Módulo 3 — Arquitectura</li>
+    <li><a href="m3_cap4_arquitectura_sw.html">Cap 4 · Principios de arquitectura SW</a></li>
+    <li class="sidebar-section">Módulo 4 — Herramientas</li>
+    <li><a href="m4_cap5_pytest.html">Cap 5 · pytest en profundidad</a></li>
+    <li><a href="m4_cap6_coverage_calidad.html">Cap 6 · Coverage y calidad de código</a></li>
+    <li><a href="m4_cap7_hypothesis.html">Cap 7 · Hypothesis</a></li>
+    <li class="sidebar-section">Módulo 5 — Tests unitarios</li>
+    <li class="active"><a href="m5_cap8_unit_tests.html">Cap 8 · Criterios de test unitario</a></li>
+    <li class="sidebar-section">Módulo 6 — Mocks</li>
+    <li><a href="m6_cap9_mocks.html">Cap 9 · Mocks y desacoplamiento</a></li>
+    <li class="sidebar-section">Módulo 7 — Automatización</li>
+    <li><a href="m7_cap10_git_hooks.html">Cap 10 · Git hooks</a></li>
+    <li class="sidebar-section">Módulo 8 — Lab</li>
+    <li><a href="m8_cap11_lab_refactor.html">Cap 11 · Lab refactoring</a></li>
+    <li class="sidebar-section">Apéndice</li>
+    <li><a href="apendice_referencia.html">Apéndice · Referencia</a></li>
+  </ul>
+
+  <!-- Toggle dark / light -->
+  <div class="theme-toggle">
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">
+      <span id="themeIcon">&#9728;</span>
+      <span id="themeLabel">Modo claro</span>
+    </button>
+  </div>
+</nav>
+
+<main class="content">
+
+  <div class="page-header">
+    <div class="page-header-module">Módulo 5 — Tests unitarios · Capítulo 8</div>
+    <h1 class="page-header-title">Criterios de test unitario</h1>
+    <p class="page-header-sub">qué testear para int · str · list · objeto · None · excepciones · Hypothesis como guía de casos borde</p>
+  </div>
+
+  <section>
+    <h2>El criterio que falta: qué casos probar para cada tipo</h2>
+    <p>La mayor parte de los tutoriales enseñan <em>cómo</em> escribir un test, no <em>qué</em> casos incluir. El resultado son suites que pasan todos los tests pero fallan en producción con un <code>None</code> inesperado o una lista vacía.</p>
+    <p>Este capítulo da una guía sistemática: <strong>para cada tipo de entrada/salida, qué casos borde debes considerar siempre</strong>.</p>
+
+    <div class="diagram-block">
+<pre>
+Checklist de casos borde por tipo:
+
+  int / float      → cero, negativo, máximo/mínimo del dominio, None
+  str              → vacío "", espacios "  ", unicode, muy largo, None
+  list / tuple     → vacía [], un elemento, duplicados, None, ordenada/no
+  dict             → vacío {}, clave que no existe, valores None
+  objeto           → None, estado inicial, estado después de N operaciones
+  booleano         → True, False (en Python también: 0, 1, "", [], None son falsy)
+  Opcional[T]      → None, valor presente, valor "vacío" del tipo base
+  excepciones      → qué lanza, cuándo, con qué mensaje
+</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Criterios para enteros y floats</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>criterios_numericos.py — casos borde para funciones numéricas</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+
+
+def calcular_iva(base: float, porcentaje: float = 21.0) -> float:
+    """Calcula IVA sobre una base imponible. Porcentaje en 0-100."""
+    if base < 0:
+        raise ValueError(f"La base no puede ser negativa: {base}")
+    if not (0 <= porcentaje <= 100):
+        raise ValueError(f"Porcentaje inválido: {porcentaje}")
+    return round(base * porcentaje / 100, 2)
+
+
+# ── Caso nominal ─────────────────────────────────────────────────
+def test_iva_caso_tipico():
+    assert calcular_iva(100.0) == 21.0
+
+
+# ── Cero ─────────────────────────────────────────────────────────
+def test_iva_base_cero_devuelve_cero():
+    assert calcular_iva(0.0) == 0.0
+
+
+def test_iva_porcentaje_cero_devuelve_cero():
+    assert calcular_iva(100.0, 0.0) == 0.0
+
+
+# ── Negativo ─────────────────────────────────────────────────────
+def test_iva_base_negativa_lanza_excepcion():
+    with pytest.raises(ValueError, match="negativa"):
+        calcular_iva(-10.0)
+
+
+# ── Extremos del dominio ─────────────────────────────────────────
+def test_iva_porcentaje_100():
+    assert calcular_iva(100.0, 100.0) == 100.0
+
+
+def test_iva_porcentaje_invalido_lanza_excepcion():
+    with pytest.raises(ValueError):
+        calcular_iva(100.0, 105.0)
+
+
+# ── Precisión float ──────────────────────────────────────────────
+def test_iva_resultado_redondeado_a_dos_decimales():
+    # 33.33 * 21% = 6.9993 → debe ser 7.00
+    assert calcular_iva(33.33) == 7.00
+
+
+# ── Hypothesis como red de seguridad ────────────────────────────
+@given(
+    base=st.floats(min_value=0, max_value=1_000_000, allow_nan=False, allow_infinity=False),
+    porcentaje=st.floats(min_value=0, max_value=100, allow_nan=False, allow_infinity=False),
+)
+def test_iva_nunca_supera_la_base_para_porcentajes_menoresa_100(base, porcentaje):
+    resultado = calcular_iva(base, porcentaje)
+    assert resultado <= base or porcentaje == 100
+    assert resultado >= 0
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Criterios para strings</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>criterios_strings.py — casos borde para funciones de texto</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+
+
+def normalizar_email(email: str) -> str:
+    """Normaliza una dirección de email: trim + lowercase."""
+    if not email or not email.strip():
+        raise ValueError("El email no puede estar vacío")
+    if "@" not in email:
+        raise ValueError(f"Email inválido: {email}")
+    return email.strip().lower()
+
+
+# ── Caso nominal ─────────────────────────────────────────────────
+def test_email_ya_normalizado():
+    assert normalizar_email("ana@ejemplo.com") == "ana@ejemplo.com"
+
+
+# ── Espacios alrededor ───────────────────────────────────────────
+def test_email_con_espacios_al_inicio_y_fin():
+    assert normalizar_email("  ANA@EJEMPLO.COM  ") == "ana@ejemplo.com"
+
+
+# ── Mayúsculas ───────────────────────────────────────────────────
+def test_email_en_mayusculas():
+    assert normalizar_email("ANA@EJEMPLO.COM") == "ana@ejemplo.com"
+
+
+# ── String vacío ─────────────────────────────────────────────────
+def test_email_vacio_lanza_excepcion():
+    with pytest.raises(ValueError, match="vacío"):
+        normalizar_email("")
+
+
+# ── Solo espacios ────────────────────────────────────────────────
+def test_email_solo_espacios_lanza_excepcion():
+    with pytest.raises(ValueError):
+        normalizar_email("   ")
+
+
+# ── Sin arroba ───────────────────────────────────────────────────
+def test_email_sin_arroba_lanza_excepcion():
+    with pytest.raises(ValueError, match="inválido"):
+        normalizar_email("sin-arroba-ejemplo")
+
+
+# ── Unicode / caracteres especiales ──────────────────────────────
+def test_email_con_parte_local_unicode():
+    # Emails con caracteres internacionales son técnicamente válidos (RFC 6531)
+    resultado = normalizar_email("üñíçödé@ejemplo.com")
+    assert "@" in resultado
+
+
+# ── Hypothesis: idempotencia ─────────────────────────────────────
+@given(st.emails())
+def test_normalizar_email_es_idempotente(email):
+    """Normalizar dos veces = normalizar una vez."""
+    primera = normalizar_email(email)
+    segunda = normalizar_email(primera)
+    assert primera == segunda
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Criterios para listas y colecciones</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>criterios_listas.py — casos borde para funciones que operan sobre colecciones</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+
+
+def calcular_mediana(numeros: list[float]) -> float:
+    """Calcula la mediana de una lista de números."""
+    if not numeros:
+        raise ValueError("La lista no puede estar vacía")
+    ordenados = sorted(numeros)
+    n = len(ordenados)
+    mitad = n // 2
+    if n % 2 == 0:
+        return (ordenados[mitad - 1] + ordenados[mitad]) / 2
+    return ordenados[mitad]
+
+
+# ── Lista vacía ───────────────────────────────────────────────────
+def test_mediana_lista_vacia_lanza_excepcion():
+    with pytest.raises(ValueError):
+        calcular_mediana([])
+
+
+# ── Un elemento ───────────────────────────────────────────────────
+def test_mediana_un_elemento():
+    assert calcular_mediana([42.0]) == 42.0
+
+
+# ── Número par de elementos ──────────────────────────────────────
+def test_mediana_lista_par_es_promedio_de_dos_centrales():
+    assert calcular_mediana([1, 3, 5, 7]) == 4.0
+
+
+# ── Número impar de elementos ────────────────────────────────────
+def test_mediana_lista_impar_es_elemento_central():
+    assert calcular_mediana([1, 2, 3, 4, 5]) == 3.0
+
+
+# ── Duplicados ────────────────────────────────────────────────────
+def test_mediana_con_duplicados():
+    assert calcular_mediana([1, 1, 1]) == 1.0
+
+
+# ── Lista desordenada (la función debe ordenar internamente) ──────
+def test_mediana_lista_desordenada():
+    assert calcular_mediana([5, 1, 3, 2, 4]) == 3.0
+
+
+# ── Valores negativos ────────────────────────────────────────────
+def test_mediana_con_negativos():
+    assert calcular_mediana([-3, -1, 2]) == -1.0
+
+
+# ── Hypothesis: invariantes de lista ─────────────────────────────
+@given(st.lists(st.floats(allow_nan=False, allow_infinity=False), min_size=1))
+def test_mediana_siempre_esta_en_rango_de_la_lista(numeros):
+    mediana = calcular_mediana(numeros)
+    assert min(numeros) <= mediana <= max(numeros)
+
+
+@given(st.lists(st.floats(allow_nan=False, allow_infinity=False), min_size=1))
+def test_mediana_de_lista_con_mismo_valor_es_ese_valor(numeros):
+    """Si todos los elementos son iguales, la mediana es ese valor."""
+    valor = numeros[0]
+    lista_uniforme = [valor] * len(numeros)
+    assert calcular_mediana(lista_uniforme) == valor
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Criterios para objetos y su estado</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>criterios_objetos.py — testear el estado de un objeto a lo largo de su ciclo de vida</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from dataclasses import dataclass, field
+from typing import Literal
+
+
+EstadoPedido = Literal["pendiente", "confirmado", "enviado", "entregado", "cancelado"]
+
+
+@dataclass
+class Pedido:
+    id: str
+    total: float
+    estado: EstadoPedido = "pendiente"
+    _historial: list[str] = field(default_factory=list, repr=False)
+
+    def confirmar(self) -> None:
+        if self.estado != "pendiente":
+            raise ValueError(f"No se puede confirmar un pedido en estado '{self.estado}'")
+        self.estado = "confirmado"
+        self._historial.append("confirmado")
+
+    def enviar(self) -> None:
+        if self.estado != "confirmado":
+            raise ValueError(f"No se puede enviar un pedido en estado '{self.estado}'")
+        self.estado = "enviado"
+        self._historial.append("enviado")
+
+    def cancelar(self) -> None:
+        if self.estado in ("enviado", "entregado"):
+            raise ValueError(f"No se puede cancelar un pedido en estado '{self.estado}'")
+        self.estado = "cancelado"
+        self._historial.append("cancelado")
+
+
+# ── Estado inicial ────────────────────────────────────────────────
+def test_pedido_nuevo_esta_en_estado_pendiente():
+    pedido = Pedido(id="ORD-001", total=100.0)
+    assert pedido.estado == "pendiente"
+
+
+def test_pedido_nuevo_historial_vacio():
+    pedido = Pedido(id="ORD-001", total=100.0)
+    assert pedido._historial == []
+
+
+# ── Transiciones válidas ──────────────────────────────────────────
+def test_confirmar_pedido_pendiente():
+    pedido = Pedido(id="ORD-001", total=100.0)
+    pedido.confirmar()
+    assert pedido.estado == "confirmado"
+
+
+def test_flujo_completo_pendiente_confirmado_enviado():
+    pedido = Pedido(id="ORD-001", total=100.0)
+    pedido.confirmar()
+    pedido.enviar()
+    assert pedido.estado == "enviado"
+    assert pedido._historial == ["confirmado", "enviado"]
+
+
+# ── Transiciones inválidas ────────────────────────────────────────
+def test_no_se_puede_confirmar_un_pedido_ya_confirmado():
+    pedido = Pedido(id="ORD-001", total=100.0)
+    pedido.confirmar()
+    with pytest.raises(ValueError, match="confirmado"):
+        pedido.confirmar()
+
+
+def test_no_se_puede_enviar_sin_confirmar():
+    pedido = Pedido(id="ORD-001", total=100.0)
+    with pytest.raises(ValueError):
+        pedido.enviar()
+
+
+def test_no_se_puede_cancelar_pedido_enviado():
+    pedido = Pedido(id="ORD-001", total=100.0)
+    pedido.confirmar()
+    pedido.enviar()
+    with pytest.raises(ValueError, match="enviado"):
+        pedido.cancelar()
+
+
+# ── Cancelación desde estados válidos ────────────────────────────
+@pytest.mark.parametrize("estado_inicial", ["pendiente", "confirmado"])
+def test_cancelacion_valida_desde_estados_iniciales(estado_inicial):
+    pedido = Pedido(id="ORD-001", total=100.0)
+    if estado_inicial == "confirmado":
+        pedido.confirmar()
+    pedido.cancelar()
+    assert pedido.estado == "cancelado"
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Criterios para None y Optional</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>criterios_none.py — el tipo que más accidentes produce en Python</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+from dataclasses import dataclass
+
+
+@dataclass
+class Perfil:
+    nombre: str
+    apellido: str | None = None
+    edad: int | None = None
+
+    def nombre_completo(self) -> str:
+        if self.apellido:
+            return f"{self.nombre} {self.apellido}"
+        return self.nombre
+
+    def es_adulto(self) -> bool | None:
+        """None si no conocemos la edad, True/False si la conocemos."""
+        if self.edad is None:
+            return None
+        return self.edad >= 18
+
+
+# ── Con None presente ────────────────────────────────────────────
+def test_nombre_completo_sin_apellido():
+    perfil = Perfil(nombre="Ana")
+    assert perfil.nombre_completo() == "Ana"
+
+
+def test_nombre_completo_con_apellido():
+    perfil = Perfil(nombre="Ana", apellido="García")
+    assert perfil.nombre_completo() == "Ana García"
+
+
+def test_nombre_completo_apellido_vacio_comporta_como_sin_apellido():
+    perfil = Perfil(nombre="Ana", apellido="")
+    # "" es falsy en Python → mismo comportamiento que None
+    assert perfil.nombre_completo() == "Ana"
+
+
+# ── Funciones que retornan None ───────────────────────────────────
+def test_es_adulto_devuelve_none_si_edad_desconocida():
+    perfil = Perfil(nombre="Ana")
+    assert perfil.es_adulto() is None  # 'is None', no '== None'
+
+
+def test_es_adulto_devuelve_true_para_mayores():
+    perfil = Perfil(nombre="Ana", edad=25)
+    assert perfil.es_adulto() is True
+
+
+def test_es_adulto_devuelve_false_para_menores():
+    perfil = Perfil(nombre="Ana", edad=15)
+    assert perfil.es_adulto() is False
+
+
+# ── Caso borde edad justo en el límite ───────────────────────────
+def test_es_adulto_exactamente_18():
+    perfil = Perfil(nombre="Ana", edad=18)
+    assert perfil.es_adulto() is True
+
+
+def test_es_adulto_exactamente_17():
+    perfil = Perfil(nombre="Ana", edad=17)
+    assert perfil.es_adulto() is False
+
+
+# ── Antipatrón: comparar con == None ─────────────────────────────
+# MAL: assert result == None  → puede dar True con __eq__ personalizado
+# BIEN: assert result is None → identidad de objeto, siempre correcto
+</code></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Criterios para excepciones</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>criterios_excepciones.py — verificar qué, cuándo y cómo se lanza</span>
+        <button class="copy-btn" onclick="copyCode(this)">Copiar</button>
+      </div>
+      <pre><code>import pytest
+
+
+class SaldoInsuficiente(Exception):
+    def __init__(self, saldo_actual: float, importe: float) -> None:
+        self.saldo_actual = saldo_actual
+        self.importe = importe
+        super().__init__(
+            f"Saldo insuficiente: disponible={saldo_actual}, solicitado={importe}"
+        )
+
+
+class CuentaBancaria:
+    def __init__(self, saldo: float = 0.0) -> None:
+        if saldo < 0:
+            raise ValueError("El saldo inicial no puede ser negativo")
+        self._saldo = saldo
+
+    @property
+    def saldo(self) -> float:
+        return self._saldo
+
+    def retirar(self, importe: float) -> None:
+        if importe <= 0:
+            raise ValueError(f"El importe debe ser positivo: {importe}")
+        if importe > self._saldo:
+            raise SaldoInsuficiente(self._saldo, importe)
+        self._saldo -= importe
+
+
+# ── Verificar tipo de excepción ───────────────────────────────────
+def test_retirar_mas_del_saldo_lanza_saldo_insuficiente():
+    cuenta = CuentaBancaria(saldo=100.0)
+    with pytest.raises(SaldoInsuficiente):
+        cuenta.retirar(150.0)
+
+
+# ── Verificar mensaje de la excepción ────────────────────────────
+def test_retirar_importe_cero_lanza_value_error_con_mensaje():
+    cuenta = CuentaBancaria(saldo=100.0)
+    with pytest.raises(ValueError, match="positivo"):
+        cuenta.retirar(0.0)
+
+
+# ── Verificar atributos de la excepción ──────────────────────────
+def test_saldo_insuficiente_contiene_datos_del_error():
+    cuenta = CuentaBancaria(saldo=50.0)
+    with pytest.raises(SaldoInsuficiente) as exc_info:
+        cuenta.retirar(100.0)
+    excepcion = exc_info.value
+    assert excepcion.saldo_actual == 50.0
+    assert excepcion.importe == 100.0
+
+
+# ── El estado NO cambia si se lanza excepción (atomicidad) ───────
+def test_saldo_no_cambia_si_retiro_falla():
+    cuenta = CuentaBancaria(saldo=100.0)
+    try:
+        cuenta.retirar(200.0)
+    except SaldoInsuficiente:
+        pass
+    assert cuenta.saldo == 100.0  # el saldo debe mantenerse intacto
+
+
+# ── No se lanza excepción en el caso válido ────────────────────────
+def test_retirar_saldo_exacto_no_lanza_excepcion():
+    cuenta = CuentaBancaria(saldo=100.0)
+    cuenta.retirar(100.0)  # no debe lanzar nada
+    assert cuenta.saldo == 0.0
+
+
+# ── Constructor con parámetro inválido ───────────────────────────
+def test_cuenta_con_saldo_negativo_inicial_lanza_value_error():
+    with pytest.raises(ValueError):
+        CuentaBancaria(saldo=-50.0)
+</code></pre>
+    </div>
+
+    <div class="info-box success">
+      <span class="info-box-label">SUCCESS</span>
+      Checklist para testear excepciones: 1) verifica el <strong>tipo</strong> exacto, no solo <code>Exception</code>; 2) verifica el <strong>mensaje</strong> con <code>match=</code> para casos donde el texto importa; 3) verifica los <strong>atributos</strong> de la excepción si los tiene; 4) verifica que el <strong>estado no cambió</strong> cuando la operación falla (atomicidad).
+    </div>
+  </section>
+
+  <div class="chapter-nav">
+    <a href="m4_cap7_hypothesis.html" class="chapter-nav-btn">← Cap 7 · Hypothesis</a>
+    <a href="index.html" class="chapter-nav-btn">Índice</a>
+    <a href="m6_cap9_mocks.html" class="chapter-nav-btn">Cap 9 · Mocks →</a>
+  </div>
+
+</main>
+
+<script src="../../shared/lucentia.js" defer></script>
+
+</body>
+</html>
